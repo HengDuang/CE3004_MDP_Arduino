@@ -410,22 +410,19 @@ void loop()
     case CalibrateFrontEP:
     {
       GetSensorData();
-      if(ForwardL > 1 && ForwardR > 1)
+      double FrontSenSorLCal = FrontSensorLCal();
+      double FrontSensoraRCal = FrontSensorRCal();
+      if(FrontSenSorLCal > 13 && FrontSensoraRCal > 13)
       {
         md.setSpeeds(-80,-80);
       }
       else
       {
-        double FrontSenSorLCal = FrontSensorLCal();
-        double FrontSensoraRCal = FrontSensorRCal();
-        // double FrontsensorCCal = FrontSensorCCal();
-        Serial.print(FrontSenSorLCal);
-        Serial.print(" ");
-        Serial.println(FrontSensoraRCal);
-
+        FrontSenSorLCal = FrontSensorLCal();
+        FrontSensoraRCal = FrontSensorRCal();
         double offset = FrontSenSorLCal - FrontSensoraRCal;
 
-      while (abs(offset) >= 0.01)
+      while (abs(offset) >= 0.015)
       {
         FrontSenSorLCal = FrontSensorLCal();
         FrontSensoraRCal = FrontSensorRCal();
@@ -433,9 +430,8 @@ void loop()
         if (FrontSenSorLCal < FrontSensoraRCal)
         {
           md.setSpeeds(80, -80);
-          Serial.println("i am doing this");
         }
-        if (FrontSenSorLCal < FrontSensoraRCal)
+        if (FrontSensoraRCal < FrontSenSorLCal)
         {
           md.setSpeeds(-80, 80);
         }
