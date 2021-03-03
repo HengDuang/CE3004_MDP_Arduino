@@ -159,17 +159,13 @@ void CalibrateSide();
 char Movements;
 int NumberOfGrid;
 int DistanceTracker;
-int count =0;
 boolean OneGridCheck;
 boolean Main = false;
 boolean Calibration = false;
 boolean Step2Check = false;
 boolean MoveForward = false;
-boolean FastestPath = false;
-boolean Exploration = false;
 boolean gridtracker = false;
-boolean Leftobstacle = false;
-boolean Rightobstacle = true;
+
 //need a way to store 10 grid movement for fastest path
 // int Dist[15] = {0, 30, 54, 81, 109, 135, 163, 190, 217, 244};
 int Dist[15] = {0, 27, 54, 81, 108, 135, 162, 189, 216, 243};
@@ -592,8 +588,6 @@ void loop()
       DistanceTracker = 0;
       AngleL = false;
       Angle = false;
-      Leftobstacle = false;
-      Rightobstacle = false;
       RobotStop();
       SendSensorData();
       State = Stop;
@@ -702,9 +696,11 @@ void RobotStop()
   newRightMotorRPM = 0;
   newLeftMotorRPM = 0;
   TurningCounterL = 0;
+  TurningCounter = 0;
   AngleL = false;
   Angle = false;
   DistanceCounter = 0;
+  DistanceTracker = 0;
   DistanceStop = false;
   md.setBrakes(400, 400);
 }
