@@ -169,7 +169,7 @@ void CalibrateSide();
 
 char Movements;
 int NumberOfGrid;
-int DistanceTracker;
+// int DistanceTracker;
 
 boolean OneGridCheck;
 boolean Main = false;
@@ -196,7 +196,7 @@ void setup()
   DistanceStop = false;
   LeftMotorCounter = 0;
   RightMotorCounter = 0;
-  DistanceTracker = 0;
+  // DistanceTracker = 0;
   DistanceCounter = 0;
   TurningCounter = 0;
   TurningCounterL = 0;
@@ -222,6 +222,7 @@ void loop()
       break;
     
     case 'z':
+      Serial.println("Bot_calibrating");
       StateCal = FullCalibrateCal;
       break;
     }
@@ -360,7 +361,7 @@ void loop()
       Angle = false;
       RobotStop();
       StateCal = StopDontSendDataCal;
-      // Serial.println("Calibrate Finish");
+      Serial.println("Calibrate Finish");
   }
   while (Main)
   {
@@ -403,7 +404,7 @@ void loop()
         State = BackWard;
         break;
 
-      case 'z':
+      case 'v':
         State = Fullcalibrate;
         Step2Check = false;
         break;
@@ -435,11 +436,11 @@ void loop()
     {
       TargetRPM = 100;
       MoveRobotForward(); 
-      // if (ForwardL == 1 || ForwardR == 1 || ForwardC == 1)
-      // {
-      //   RobotStop();
-      //   State = StopSendSensorData;
-      // }
+      if (ForwardL == 1 || ForwardR == 1 || ForwardC == 1)
+      {
+        RobotStop();
+        State = StopSendSensorData;
+      }
     }
     break;
 
@@ -454,21 +455,21 @@ void loop()
         RightPreviousMotorError = RightMotorError;
         LeftPreviousMotorError = LeftMotorError;
         DistanceCounter = 0;
-        DistanceTracker = 0;
+        // DistanceTracker = 0;
         DistanceStop = false;
         MoveForward = true;
         Grid = Dist[NumberOfGrid]; // 0-9
         Serial.println("Moving Forward");
       }
       GetSensorData();
-      if (gridtracker)
-      {
-        SendSensorData();
-        gridtracker = false;
-      }
+      // if (gridtracker)
+      // {
+      //   SendSensorData();
+      //   gridtracker = false;
+      // }
       if (Grid == 27)
       {
-        TargetRPM = 100;
+        TargetRPM = 80;
       }
       else if (Grid != 27)
       {
@@ -740,7 +741,7 @@ void loop()
       TurningCounter = 0;
       TurningCounterL = 0;
       DistanceCounter = 0;
-      DistanceTracker = 0;
+      // DistanceTracker = 0;
       AngleL = false;
       Angle = false;
       RobotStop();
@@ -855,7 +856,7 @@ void RobotStop()
   AngleL = false;
   Angle = false;
   DistanceCounter = 0;
-  DistanceTracker = 0;
+  // DistanceTracker = 0;
   DistanceStop = false;
   md.setBrakes(400, 400);
 }
@@ -1003,12 +1004,12 @@ void LeftMotorCount()
   }
   else if (LeftMotorCounter == 11)
   {
-    DistanceTracker++;
-    if (DistanceTracker == 27 && Grid != 27)
-    {
-      gridtracker = true;
-      DistanceTracker = 0;
-    }
+    // DistanceTracker++;
+    // if (DistanceTracker == 27 && Grid != 27)
+    // {
+    //   gridtracker = true;
+    //   DistanceTracker = 0;
+    // }
     DistanceCounter++;
     if (DistanceCounter == Grid)
     {
