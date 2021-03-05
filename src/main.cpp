@@ -10,13 +10,15 @@ DualVNH5019MotorShield md;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////         CONSTANTS VALUE FOR PID CONSTANT VALUES     ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ////Left //red line
+
+//6.29v to 6.33v
 double Kp = 11.5; //10 increase to reduce spike at the start
-double Ki = 0.61; //0.9 increase to pump up to able to reach desired speed
+double Ki = 0.58; //0.9 increase to pump up to able to reach desired speed
 double Kd = 0.35; //increase to improve stablity and prevent overshoot from the target
 
 //Right //blue line
 double Kpr = 10.5;
-double Kir = 0.52;
+double Kir = 0.63;
 double Kdr = 0.35;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////        PID DECLARATIONS      ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 double TargetRPM = 0;
@@ -196,6 +198,7 @@ void setup()
   DistanceStop = false;
   LeftMotorCounter = 0;
   RightMotorCounter = 0;
+  MoveForward = false;
   // DistanceTracker = 0;
   DistanceCounter = 0;
   TurningCounter = 0;
@@ -209,7 +212,6 @@ void setup()
 void loop()
 {
   GetSensorData();
-  SendSensorData();
   if (Serial.available() > 0)
   {
     char Modes = Serial.read();
@@ -247,7 +249,7 @@ void loop()
         Angle = false;
         RobotStop();
         StateCal = CalibrateFrontCal;
-        delay(1000);
+        delay(500);
       } 
     }
     break;
@@ -286,7 +288,6 @@ void loop()
           }
         }
         StateCal = StopCal;
-        //Serial.println("Calibrate finish");
       }
     }
     break;
@@ -321,7 +322,7 @@ void loop()
         Step2Check = false;
         StateCal = CalibrateSideCal;
         RobotStop();
-        delay(1000);
+        delay(500);
       }
     }
     break;
@@ -331,7 +332,7 @@ void loop()
       LeftSensorLCal = SideSensorL();
       LeftSensorRcal = SideSensorR();
       double offset = LeftSensorLCal - LeftSensorRcal;
-      while (abs(offset) >= 0.4)
+      while (abs(offset) >= 0.2)
       {
         LeftSensorLCal = SideSensorL();
         LeftSensorRcal = SideSensorR();
@@ -361,7 +362,6 @@ void loop()
       Angle = false;
       RobotStop();
       StateCal = StopDontSendDataCal;
-      Serial.println("Calibrate Finish");
   }
   while (Main)
   {
@@ -455,32 +455,20 @@ void loop()
         RightPreviousMotorError = RightMotorError;
         LeftPreviousMotorError = LeftMotorError;
         DistanceCounter = 0;
-        // DistanceTracker = 0;
         DistanceStop = false;
         MoveForward = true;
         Grid = Dist[NumberOfGrid]; // 0-9
-        Serial.println("Moving Forward");
       }
       GetSensorData();
-      // if (gridtracker)
-      // {
-      //   SendSensorData();
-      //   gridtracker = false;
-      // }
       if (Grid == 27)
       {
-        TargetRPM = 80;
+        TargetRPM = 100;
       }
       else if (Grid != 27)
       {
         TargetRPM = 100;
       }
       MoveRobotForward();
-      // if (ForwardL == 1 || ForwardR == 1 || ForwardC == 1)
-      // {
-      //   RobotStop();
-      //   State = StopSendSensorData;
-      // }
       if (DistanceStop == true)
       {
         DistanceStop = false;
@@ -494,8 +482,25 @@ void loop()
         MoveForward = false;
         if (Grid == 27) //if setting is set to one grid
         {
-          // State = Halfcalibrate;
-          State = StopSendSensorData;
+          // if(LeftSensorLCal <= 17 && LeftSensorRcal <= 17)
+          // {
+          //   if(LeftSensorLCal <= 6 || LeftSensorRcal <= 6)
+          //   {
+          //     State = Fullcalibrate;
+          //   }
+          //   else if(LeftSensorLCal <= 10 && LeftSensorRcal <= 13)
+          //   {
+          //     State = Halfcalibrate;
+          //   }
+          //   else if((LeftSensorLCal > 11 && LeftSensorLCal <= 17) || (LeftSensorRcal > 13 && LeftSensorRcal <= 17))
+          //   {
+          //     State= Fullcalibrate;
+          //   }
+          //   else
+          //   {
+              State = StopSendSensorData;
+          //   }
+          // }
         }
         if (Grid != 27) //if setting is not set to one grid only do one instruction
         {
@@ -511,7 +516,7 @@ void loop()
           DistanceStop = false;
           DistanceCounter = 0;
           TurningCounterL =0;
-          State = StopSendSensorData;
+          State = Stop;
         }
       }
     }
@@ -519,7 +524,7 @@ void loop()
 
     case TurnLeft:
     {
-      TargetRPM = 120;
+      TargetRPM = 100;
       MoveRobotAntiClockWise();
       
       if (AngleL == true)
@@ -533,7 +538,6 @@ void loop()
         TurningCounterL = 0;
         AngleL = false;
         RobotStop();
-        // Serial.println("Turning Left");
         State = StopSendSensorData;
       }
     }
@@ -541,7 +545,7 @@ void loop()
 
     case TurnRight:
     {
-      TargetRPM = 120;
+      TargetRPM = 100;
       MoveRobotClockWise();
       
       if (Angle == true)
@@ -553,7 +557,6 @@ void loop()
         TurningCounter = 0;
         RobotStop();
         Angle = false;
-        // Serial.println("Turning Right");
         State = StopSendSensorData;
       }
     }
@@ -584,7 +587,7 @@ void loop()
         Angle = false;
         RobotStop();
         State = CalibrateFrontEP;
-        delay(1000);
+        delay(500);
       } 
     }
     break;
@@ -623,7 +626,6 @@ void loop()
           }
         }
         State = StopEP;
-        //Serial.println("Calibrate finish");
       }
     }
     break;
@@ -658,7 +660,7 @@ void loop()
         Step2Check = false;
         State = CalibrateSideEP;
         RobotStop();
-        delay(1000);
+        delay(500);
       }
     }
     break;
@@ -692,8 +694,9 @@ void loop()
       LeftSensorLCal = SideSensorL();
       LeftSensorRcal = SideSensorR();
       double offset = LeftSensorLCal - LeftSensorRcal;
-      if ((LeftSensorLCal >= 6 && LeftSensorLCal <= 7) && (LeftSensorRcal >= 5 && LeftSensorRcal <= 6))
-      {
+      // Serial.print(LeftSensorLCal);
+      // Serial.print("  ");
+      // Serial.println(LeftSensorRcal);
         while (abs(offset) >= 0.5)
         {
           LeftSensorLCal = SideSensorL();
@@ -701,34 +704,14 @@ void loop()
           offset = LeftSensorLCal - LeftSensorRcal;
           if (LeftSensorLCal < LeftSensorRcal)
           {
-            md.setSpeeds(80, -80);
+            md.setSpeeds(65, -65);
           }
-          if (LeftSensorRcal < LeftSensorLCal)
+          else if (LeftSensorRcal < LeftSensorLCal)
           {
-            md.setSpeeds(-80, 80);
+            md.setSpeeds(-65, 65);
           }
-        }
-        if (LeftSensorLCal < 5 || LeftSensorRcal < 4)
-        {
-          State = Fullcalibrate;
-        }
-        else if (LeftSensorLCal > 10 || LeftSensorRcal > 10)
-        {
-          State = Fullcalibrate;
-        }
-        else
-        {
           State = StopSendSensorData;
         }
-      }
-      else if (LeftSensorLCal > 10 || LeftSensorRcal <= 10)
-      {
-        State = StopSendSensorData;
-      }
-      else if (LeftSensorRcal > 10 || LeftSensorRcal <= 10)
-      {
-        State = StopSendSensorData;
-      }
     }
     break;
 
@@ -741,7 +724,6 @@ void loop()
       TurningCounter = 0;
       TurningCounterL = 0;
       DistanceCounter = 0;
-      // DistanceTracker = 0;
       AngleL = false;
       Angle = false;
       RobotStop();
@@ -1038,7 +1020,7 @@ void RightMotorCount()
       Angle = true;
       TurningCounter = 0;
     }
-    if (TurningCounterL == 32)
+    if (TurningCounterL == 33)
     {
       AngleL = true;
       TurningCounterL = 0;
@@ -1086,41 +1068,6 @@ void SendSensorData()
   String s = "SDATA:" + String(ForwardC) + ":" + String(ForwardL) + ":" + String(ForwardR) + ":" + String(LeftShortSensorL) + ":" + String(LeftShortSensorR) + ":" + String(RightLongSensor);
   Serial.println(s);
 }
-// void CalibrateFront()
-// {
-//     GetSensorData();
-//     SendSensorData();
-//     int moveback = 0;
-//     while (moveback != 10)
-//     {
-//       md.setSpeeds(100, 100);
-//       moveback++;
-//     }
-//     if (ForwardL > 1)
-//     {
-//       md.setSpeeds(-100, 100);
-//       count = 0;
-//     }
-//     if (ForwardR > 1)
-//     {
-//       md.setSpeeds(100, -100);
-//       count = 0;
-//     }
-//     if (ForwardL > 1 && ForwardR > 1 && ForwardC > 1)
-//     {
-//       md.setSpeeds(-115, -120);
-//       count = 0;
-//     }
-//     if (ForwardL == 1 && ForwardR == 1 && ForwardC == 1 && count != 5)
-//     {
-//       count++;
-//     }
-//     if (count == 5)
-//     {
-//       RobotStop();
-//     }
-//   }
-// }
 void CalibrateSide()
 {
 
