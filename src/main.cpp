@@ -855,10 +855,12 @@ void RobotStop()
 {
   RightMotorCounter = 0;
   LeftMotorCounter = 0;
-  RightPreviousMotorError = RightMotorError;
-  LeftPreviousMotorError = LeftMotorError;
-  newRightMotorRPM = 0;
-  newLeftMotorRPM = 0;
+  // RightPreviousMotorError = RightMotorError;
+  // LeftPreviousMotorError = LeftMotorError;
+  // newRightMotorRPM = 0;
+  // newLeftMotorRPM = 0;
+  RightMotorError = 0;
+  LeftMotorError = 0;
   TurningCounterL = 0;
   TurningCounter = 0;
   AngleL = false;
