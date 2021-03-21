@@ -22,13 +22,13 @@ DualVNH5019MotorShield md;
 // double Kir = 0.62;
 // double Kdr = 0.35;
 // < 6.4
-//ideael 6.35v ~ 6.32 (optimal)  , < 6.3 not optimal
+//ideael 6.35v ~ 6.2 (optimal)  , < 6.2 not optimal
 double Kp = 11.5; //10 increase to reduce spike at the start
 double Ki = 0.62; //0.9 increase to pump up to able to reach desired speed
 double Kd = 0.35; //increase to improve stablity and prevent overshoot from the target
 
 //Right //blue line
-double Kpr = 10.5;
+double Kpr = 11.2;
 double Kir = 0.60;
 double Kdr = 0.35;
 
@@ -66,21 +66,21 @@ int LeftEncoder = 11; //Left Wheel
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////         ENCODER COUNTER FOR PID CONTROL      ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Encoder Counter that will be use for PID control later
-int RightMotorCounter = 0; //Counter Value for number of High pulse for Right Motor
-int LeftMotorCounter = 0;  //Counter Value for number of High pulse for left Motor
+volatile int RightMotorCounter = 0; //Counter Value for number of High pulse for Right Motor
+volatile int LeftMotorCounter = 0;  //Counter Value for number of High pulse for left Motor
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////         ROBOT MOVEMENT DECLARATION      ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //Movement for Robot
-double TurningCounter = 0;
-double TurningCounterL = 0;
-double CalibrateTurn = 0;
-double DistanceCounter = 0;
-double TotalDistanceTravelled = 0;
-boolean DistanceStop = false;
-boolean Angle = false;
-boolean AngleL = false;
-int count = 0;
+volatile double TurningCounter = 0;
+volatile double TurningCounterL = 0;
+// double CalibrateTurn = 0;
+volatile double DistanceCounter = 0;
+// double TotalDistanceTravelled = 0;
+volatile boolean DistanceStop = false;
+volatile boolean Angle = false;
+volatile boolean AngleL = false;
+// int count = 0;
 
 //Robot Sensors
 double FrontLeftSensorGradient = 0.00009433724900356394;
@@ -104,51 +104,51 @@ double LeftShortSensorConstant = 0.007772562954454363;
 int ForwardL;
 int ForwardR;
 int ForwardC;
-int Distance;
+// int Distance;
 int LeftShortSensorL;
 int LeftShortSensorR;
 int RightLongSensor;
 double LeftSensorLCal;
 double LeftSensorRcal;
 double FrontSenSorLCal;
-double FrontSensoraRCal;
+double FrontSensorRCal;
+double FrontSenSorCCal;
 
 enum StateModeFP
 {
   Stop,
-  StopEP,
-  StopSendSensorData,
+  Stop_SendSensorData,
+  ForwardStop,
   BackWard,
   TurnLeft,
+  TurnLeft1,
   TurnRight,
+  TurnRight1,
   Forward,
   ForwardGrid,
   Halfcalibrate,
   Fullcalibrate,
   CalibrateFrontEP,
-  TurnRightEP,
-  CalibrateSideEP,
   CheckFullCalibrationEP,
-  TurnLeft1
+  CalibrateFrontLeftMiddle,
+  CalibrateFrontLeftRight,
+  CalibrateFrontRightMiddle,
+  
+  abcd
 };
 StateModeFP State = Stop;
 
 enum ModeStateCal
 {
-  StopCal,
-  // TurnLeftCal1,
+  TurnLeftCal1,
   TurnRightCal,
-  // TurnRightCal1,
+  TurnRightCal1,
   CalibrateSideCal,
-  // CalibrateSideCal1,
-  // CalibrateSideCal2,
   FullCalibrateCal,
   CalibrateFrontCal,
-  // CalibrateFrontCal1,
-  // CalibrateFrontCal2,
+  CalibrateFrontCal1,
   StopDontSendDataCal
 };
-
 ModeStateCal StateCal = StopDontSendDataCal;
 //PID computation
 void ComputePID();
@@ -157,29 +157,29 @@ void ComputePreviousMotorError();
 void ComputeAllPreviousMotorError();
 
 //Robot Movements
-void MoveRobotForward();
-void MoveRobotClockWise();
-void MoveRobotAntiClockWise();
-void MoveRobotBackward();
-void RobotStop();
+void MoveRobot_Forward();
+void MoveRobot_ClockWise();
+void MoveRobot_AntiClockWise();
+void MoveRobot_Backward();
+void RobotStop_BothMotors();
+void RobotStop_LeftMotor(); // for left turn
+void RobotStop_RightMotor(); // for right turn
+void RobotStop_OneGrid();
 
 //Sensor Calibrations
-double CalibrateFrontLeftShortSensor();
-double CalibrateFrontRightShortSensor();
-double CalibrateLeftShortSensorR();
-double CalibrateRightLongSensor();
-double CalibrateLeftShortSensor();
+double Calibrate_FrontLeftShortSensor();
+double Calibrate_FrontRightShortSensor();
+double Calibrate_LeftShortSensorR();
+double Calibrate_RightLongSensor();
+double Calibrate_LeftShortSensor();
 
-double FrontSensorLeftCal();
-double FrontSensorRightCal();
-double FrontSensorCentreCal();
-double SideSensorL();
-double SideSensorR();
-double FrontSensorLCal();
-double FrontSensorRCal();
-double FrontSensorCCal();
-void RobotStop1(); // for left turn
-void RobotStop2(); // for right turn
+//Raw sensor Values
+double SideSensor_LCal();
+double SideSensor_RCal();
+double FrontSensor_LCal();
+double FrontSensor_RCal();
+double FrontSensor_CCal();
+
 
 //RPM computation
 void LeftMotorCount();
@@ -189,39 +189,26 @@ double calculateRPM(double encoderValue);
 void GetSensorData();
 void SendSensorData();
 
-void CalibrateFront();
-void CalibrateSide();
-
-char Movements;
-int NumberOfGrid;
 // int DistanceTracker;
 
-boolean OneGridCheck;
+// boolean OneGridCheck;
+char Movements;
+int NumberOfGrid;
 boolean Main = false;
 boolean Calibration = false;
-boolean Step2Check = false;
+// boolean Step2Check = false;
 boolean MoveForward = false;
-boolean gridtracker = false;
-boolean Leftwallexist = false;
-boolean rightwallexist = false;
-//need a way to store 10 grid movement for fastest path
-// int Dist[15] = {0, 30, 54, 81, 109, 135, 163, 190, 217, 244};
-// int Dist[15] = {0, 25, 54, 81, 108, 135, 162, 189, 216, 243};
-int Dist[15] = {0 , 25, 50 , 75 , 100 , 125 , 150 , 175 , 200 , 225};
-int Grid = 0;
+// boolean gridtracker = false;
+// boolean Leftwallexist = false;
+// boolean rightwallexist = false;
 
+
+int Dist[15] = {0, 22, 44, 66, 88, 125, 150, 175, 200, 225};
+int Grid = 0;
+int count = 0;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////         VOID SETUP     ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 void setup()
 {
-  Angle = false;
-  AngleL = false;
-  DistanceStop = false;
-  LeftMotorCounter = 0;
-  RightMotorCounter = 0;
-  MoveForward = false;
-  DistanceCounter = 0;
-  TurningCounter = 0;
-  TurningCounterL = 0;
   Serial.begin(115200);
   enableInterrupt(RightEncoder, RightMotorCount, RISING); //Set Rising Edge as interrupt
   enableInterrupt(LeftEncoder, LeftMotorCount, RISING);   //Set Rising Edge as interrupt
@@ -255,21 +242,94 @@ void loop()
   case FullCalibrateCal:
   {
     TargetRPM = 100;
-    MoveRobotAntiClockWise();
+    MoveRobot_AntiClockWise();
     if (AngleL == true)
     {
       RightMotorCounter = 0;
       LeftMotorCounter = 0;
-      RightPreviousMotorError = RightMotorError;
-      LeftPreviousMotorError = LeftMotorError;
-      newRightMotorRPM = 0;
-      newLeftMotorRPM = 0;
+      LeftMotorError = 0;
+      RightMotorError = 0;
       TurningCounterL = 0;
       TurningCounter = 0;
       AngleL = false;
       Angle = false;
-      RobotStop();
-      delay(100);
+      RobotStop_LeftMotor();
+      delay(500);
+      StateCal = TurnLeftCal1;
+    }
+  }
+  break;
+
+  case TurnLeftCal1:
+  {
+    TargetRPM = 100;
+    MoveRobot_AntiClockWise();
+    if (AngleL == true)
+    {
+      RightMotorCounter = 0;
+      LeftMotorCounter = 0;
+      LeftMotorError = 0;
+      RightMotorError = 0;
+      TurningCounterL = 0;
+      TurningCounter = 0;
+      AngleL = false;
+      Angle = false;
+      RobotStop_LeftMotor();
+      delay(500);
+      StateCal = CalibrateFrontCal1;
+    }
+  }
+  break;
+
+  case CalibrateFrontCal1:
+  {
+    GetSensorData();
+    while (FrontSenSorLCal <= 11.2 && FrontSensorRCal <= 11.6)
+    {
+      GetSensorData();
+      md.setSpeeds(70, 80); // difference of 11
+    }
+
+    while (FrontSensorRCal - FrontSenSorLCal <= 0.37 || FrontSensorRCal - FrontSenSorLCal >= 0.43)
+    {
+      GetSensorData();
+      if (FrontSensorRCal - FrontSenSorLCal <= 0.37)
+      {
+        md.setSpeeds(-80, 80);
+      }
+      else if (FrontSensorRCal - FrontSenSorLCal >= 0.43)
+      {
+        md.setSpeeds(80, -80);
+      }
+    }
+
+    while (FrontSenSorLCal >= 11.2 || FrontSensorRCal >= 11.6)
+    {
+      GetSensorData();
+      md.setSpeeds(-70, -80); // difference of 11
+    }
+
+    RobotStop_BothMotors();
+    delay(500);
+    StateCal = TurnRightCal;
+  }
+  break;
+
+  case TurnRightCal:
+  {
+    TargetRPM = 100;
+    MoveRobot_ClockWise();
+    if (Angle == true)
+    {
+      RightMotorCounter = 0;
+      LeftMotorCounter = 0;
+      LeftMotorError = 0;
+      RightMotorError = 0;
+      TurningCounter = 0;
+      Angle = false;
+      // Step2Check = false;
+      RobotStop_LeftMotor();
+      delay(500);
       StateCal = CalibrateFrontCal;
     }
   }
@@ -278,72 +338,53 @@ void loop()
   case CalibrateFrontCal:
   {
     GetSensorData();
-    FrontSenSorLCal = FrontSensorLCal();
-    FrontSensoraRCal = FrontSensorRCal();
-
-    double offset = FrontSenSorLCal - FrontSensoraRCal;
-    while (abs(offset) >= 0.4)
+    while (FrontSenSorLCal <= 13.7 && FrontSensorRCal <= 14.7)
     {
-      offset = FrontSenSorLCal - FrontSensoraRCal;
       GetSensorData();
-      if (FrontSenSorLCal > FrontSensoraRCal)
+      md.setSpeeds(70, 80);
+    }
+
+    while ((FrontSensorRCal - FrontSenSorLCal <= 0.95) || (FrontSensorRCal - FrontSenSorLCal >= 1.05))
+    {
+      GetSensorData();
+      if (FrontSensorRCal - FrontSenSorLCal <= 0.95)
       {
         md.setSpeeds(-80, 80);
       }
-      if (FrontSensoraRCal > FrontSenSorLCal)
+      else if (FrontSensorRCal - FrontSenSorLCal >= 1.05)
       {
         md.setSpeeds(80, -80);
       }
     }
 
-    while (FrontSenSorLCal > 12.8 && FrontSensoraRCal > 12.8)
+    while (FrontSenSorLCal >= 13.6 || FrontSensorRCal >= 14.6)
     {
       GetSensorData();
-      md.setSpeeds(-70, -80); // difference of 11
+      md.setSpeeds(-70, -80);
     }
 
-    while (FrontSenSorLCal < 11.8 && FrontSensoraRCal < 11.8)
-    {
-      GetSensorData();
-      md.setSpeeds(70, 80);
-    }
-    StateCal = StopCal;
+    RobotStop_BothMotors();
+    delay(500);
+    StateCal = TurnRightCal1;
   }
   break;
 
-  case StopCal:
-  {
-    RightMotorCounter = 0;
-    LeftMotorCounter = 0;
-    RightMotorError = 0;
-    LeftMotorError = 0;
-    TurningCounter = 0;
-    TurningCounterL = 0;
-    DistanceCounter = 0;
-    AngleL = false;
-    Angle = false;
-    RobotStop();
-    StateCal = TurnRightCal;
-  }
-  break;
-
-  case TurnRightCal:
+  case TurnRightCal1:
   {
     TargetRPM = 100;
-    MoveRobotClockWise();
-    if (AngleL == true)
+    MoveRobot_ClockWise();
+    if (Angle == true)
     {
       RightMotorCounter = 0;
       LeftMotorCounter = 0;
-      RightPreviousMotorError = RightMotorError;
-      LeftPreviousMotorError = LeftMotorError;
-      newRightMotorRPM = 0;
-      newLeftMotorRPM = 0;
-      TurningCounterL = 0;
-      AngleL = false;
-      Step2Check = false;
-      RobotStop();
-      delay(100);
+      LeftMotorError = 0;
+      RightMotorError = 0;
+      TurningCounter = 0;
+      DistanceCounter =0;
+      Angle = false;
+      // Step2Check = false;
+      RobotStop_LeftMotor();
+      delay(500);
       StateCal = CalibrateSideCal;
     }
   }
@@ -352,20 +393,20 @@ void loop()
   case CalibrateSideCal:
   {
     GetSensorData();
-    double offset = LeftSensorLCal - LeftSensorRcal;
-    while (abs(offset) >= 0.09)
+    while ((LeftSensorRcal - LeftSensorLCal <= 1.23) || (LeftSensorRcal - LeftSensorLCal >= 1.25))
     {
       GetSensorData();
-      offset = LeftSensorLCal - LeftSensorRcal;
-      if (LeftSensorLCal < LeftSensorRcal)
+      if (LeftSensorRcal - LeftSensorLCal >= 1.25)
       {
         md.setSpeeds(65, -65);
       }
-      if (LeftSensorRcal < LeftSensorLCal)
+      if (LeftSensorRcal - LeftSensorLCal <= 1.23)
       {
         md.setSpeeds(-65, 65);
       }
     }
+    RobotStop_BothMotors();
+    delay(500);
     StateCal = StopDontSendDataCal;
   }
   break;
@@ -381,14 +422,15 @@ void loop()
     DistanceCounter = 0;
     AngleL = false;
     Angle = false;
-    RobotStop();
+    RobotStop_BothMotors();
     StateCal = StopDontSendDataCal;
     break;
   }
-  }
+}
   while (Main)
   {
     GetSensorData();
+    SendSensorData();
     if (Serial.available() > 0)
     {
       if (Serial.peek() >= 97 && Serial.peek() < 123)
@@ -420,13 +462,10 @@ void loop()
 
       case 'd':
         State = TurnRight;
+        // State = BackWard;
         break;
 
-        // case 'z':
-        //   State = TurnRighttest;
-        //   break;
-
-      case 'x':
+      case 'y':
         State = BackWard;
         break;
 
@@ -437,6 +476,18 @@ void loop()
 
       case 'c':
         State = Halfcalibrate;
+        break;
+
+      case 'b':
+        State = CalibrateFrontLeftMiddle;
+        break;
+
+      case 'n':
+        State = CalibrateFrontLeftRight;
+        break;
+
+      case 'm':
+        State = CalibrateFrontRightMiddle;
         break;
       }
     }
@@ -453,28 +504,26 @@ void loop()
       DistanceCounter = 0;
       AngleL = false;
       Angle = false;
-      RobotStop();
+      RobotStop_BothMotors();
       State = Stop;
     }
     break;
+////////////////////////////////////////////        Basic Movements     ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     case Forward:
     {
-      TargetRPM = 100;
-      MoveRobotForward();
+      md.setSpeeds(-100, -100);
       if (ForwardL == 1 || ForwardR == 1 || ForwardC == 1)
       {
-        RobotStop();
-        State = StopSendSensorData;
+        RobotStop_BothMotors();
+        State = Stop_SendSensorData;
       }
     }
     break;
 
     case ForwardGrid:
     {
-      if(ForwardL != 1 && ForwardR != 1)
-      {
-      if (MoveForward == false)
+      if (MoveForward == false) // to reset all counter values in the interrupt
       {
         RightMotorCounter = 0;
         LeftMotorCounter = 0;
@@ -486,79 +535,56 @@ void loop()
         Grid = Dist[NumberOfGrid]; // 0-9
       }
       GetSensorData();
-      if (Grid == 25)
+      if (Grid == 22) // set speed for one grid movements
       {
-        // Serial.print(mlRPM);
-        // Serial.print("  ");
-        // Serial.println(mrRPM);
-        md.setSpeeds(-225.2,-248);
-        
+        md.setSpeeds(-362, -382);
       }
-      else if (Grid != 25)
+      else if (Grid != 22) // set speed for fp
       {
         TargetRPM = 100;
       }
-      // MoveRobotForward();
-      if (DistanceStop == true)
+      // MoveRobot_Forward();
+      if (DistanceStop == true) // if grid number hit > distancestop = true , stop motor movement
       {
         DistanceStop = false;
         RightMotorCounter = 0;
         LeftMotorCounter = 0;
         RightMotorError = 0;
         LeftMotorError = 0;
-        RobotStop();
+        RobotStop_OneGrid();
         MoveForward = false;
-        if (Grid == 25)
+        if (Grid == 22)
         {
-          Serial.println("ilili");
+          delay(350);
           State = CheckFullCalibrationEP; //exploration
-          // State = StopSendSensorData; // fastest path
-          delay(20);
+
+          // State = Stop; // fastest path
         }
-        if (Grid != 25) //if setting is not set to one grid only do one instruction
+        if (Grid != 22) //if setting is not set to one grid only do one instruction
         {
-          RightMotorCounter = 0;
-          LeftMotorCounter = 0;
-          RightMotorError = 0;
-          LeftMotorError = 0;
-          Angle = false;
-          AngleL = false;
-          DistanceStop = false;
-          DistanceCounter = 0;
-          TurningCounter = 0;
-          TurningCounterL = 0;
-          delay(20);
-          State = StopSendSensorData;
+          delay(350);
+          State = CheckFullCalibrationEP;
         }
       }
     }
-    else
-    {
-      State = StopSendSensorData;
-    }
-  }
     break;
 
     case TurnLeft:
     {
       TargetRPM = 100;
-      MoveRobotAntiClockWise();
+      MoveRobot_AntiClockWise();
 
       if (AngleL == true)
       {
         RightMotorCounter = 0;
         LeftMotorCounter = 0;
-        // RightPreviousMotorError = RightMotorError;
-        // LeftPreviousMotorError = LeftMotorError;
-        // newRightMotorRPM = 0;
-        // newLeftMotorRPM = 0;
         RightMotorError = 0;
         LeftMotorError = 0;
         TurningCounterL = 0;
         AngleL = false;
-        RobotStop1();
-        delay(100);
-        State = StopSendSensorData;
+        RobotStop_LeftMotor();
+        delay(350);
+        State = CheckFullCalibrationEP;
       }
     }
     break;
@@ -566,62 +592,109 @@ void loop()
     case TurnRight:
     {
       TargetRPM = 100;
-      MoveRobotClockWise();
-      // Serial.println(Angle);
+      MoveRobot_ClockWise();
       if (Angle == true)
       {
         RightMotorCounter = 0;
         LeftMotorCounter = 0;
-        // RightPreviousMotorError = RightMotorError;
-        // LeftPreviousMotorError = LeftMotorError;
         RightMotorError = 0;
         LeftMotorError = 0;
         TurningCounter = 0;
-        RobotStop1();
+        RobotStop_LeftMotor();
         Angle = false;
-        delay(100);
-        State = StopSendSensorData;
+        delay(350);
+        State = CheckFullCalibrationEP;
       }
+    }
+    break;
+
+    case abcd:
+    {
+      RightMotorCounter = 0;
+      LeftMotorCounter = 0;
+      RightMotorError = 0;
+      LeftMotorError = 0;
+      TurningCounter = 0;
+      TurningCounterL = 0;
+      RobotStop_LeftMotor();
+      Angle = false;
+      AngleL = false;
+      DistanceCounter = 0;
+      State = Stop_SendSensorData;
     }
     break;
 
     case BackWard:
     {
-      TargetRPM = 100;
-      MoveRobotBackward();
+      md.setSpeeds(80, 80);
+      count++;
+      if (count == 70)
+      {
+        count = 0;
+        md.setBrakes(400, 400);
+        RobotStop_BothMotors();
+        State = Stop_SendSensorData;
+      }
     }
     break;
 
     case Fullcalibrate:
     {
       GetSensorData();
-      double offset = FrontSenSorLCal - FrontSensoraRCal;
-      while (abs(offset) >= 0.3)
-      {
-        offset = FrontSenSorLCal - FrontSensoraRCal;
-        GetSensorData();
-        if (FrontSenSorLCal > FrontSensoraRCal)
-        {
-          md.setSpeeds(-80, 80);
-        }
-        if (FrontSensoraRCal > FrontSenSorLCal)
-        {
-          md.setSpeeds(80, -80);
-        }
-      }
+      double offset = FrontSenSorLCal - FrontSensorRCal;
 
-      while (FrontSenSorLCal > 11.5 && FrontSensoraRCal > 12.3)
+      while (FrontSenSorLCal > 12.8 && FrontSensorRCal > 13.1)
       {
         GetSensorData();
         md.setSpeeds(-70, -80); // difference of 11
       }
 
-      while (FrontSenSorLCal < 10.5 && FrontSensoraRCal < 11.3)
+      while (FrontSenSorLCal < 11.8 && FrontSensorRCal < 12.1)
       {
         GetSensorData();
         md.setSpeeds(70, 80);
       }
-      RobotStop();
+
+      // Serial.println(abs(offset));
+      while (abs(offset) <= 0.4)
+      {
+        offset = FrontSenSorLCal - FrontSensorRCal;
+        GetSensorData();
+        if ((FrontSenSorLCal - FrontSensorRCal) >= 0.7)
+        {
+          md.setSpeeds(-80, 80); // Turn Left
+        }
+        else if ((FrontSensorRCal - FrontSenSorLCal) >= 0.7)
+        {
+          md.setSpeeds(80, -80); // Turn Right
+        }
+      }
+
+      while (FrontSenSorLCal > 11.8 && FrontSensorRCal > 12.1)
+      {
+        GetSensorData();
+        md.setSpeeds(-70, -80); // difference of 11
+      }
+
+      while (FrontSenSorLCal < 10.8 && FrontSensorRCal < 11.1)
+      {
+        GetSensorData();
+        md.setSpeeds(70, 80);
+      }
+
+      while (abs(offset) >= 0.2)
+      {
+        offset = FrontSenSorLCal - FrontSensorRCal;
+        GetSensorData();
+        if ((FrontSenSorLCal - FrontSensorRCal) >= 0.2)
+        {
+          md.setSpeeds(-80, 80); // Turn Left
+        }
+        else if ((FrontSensorRCal - FrontSenSorLCal) >= 0.2)
+        {
+          md.setSpeeds(80, -80); // Turn Right
+        }
+      }
       State = TurnLeft1;
     }
     break;
@@ -629,23 +702,20 @@ void loop()
     case TurnLeft1:
     {
       TargetRPM = 100;
-      MoveRobotAntiClockWise();
+      MoveRobot_AntiClockWise();
       if (AngleL == true)
       {
         RightMotorCounter = 0;
         LeftMotorCounter = 0;
-        // RightPreviousMotorError = RightMotorError;
-        // LeftPreviousMotorError = LeftMotorError;
         RightMotorError = 0;
         LeftMotorError = 0;
-        // newRightMotorRPM = 0;
-        // newLeftMotorRPM = 0;
         TurningCounterL = 0;
         TurningCounter = 0;
+        DistanceCounter = 0;
         AngleL = false;
         Angle = false;
-        RobotStop();
-        delay(20);
+        RobotStop_LeftMotor();
+        delay(350);
         State = CalibrateFrontEP;
       }
     }
@@ -654,38 +724,305 @@ void loop()
     case CalibrateFrontEP:
     {
       GetSensorData();
-      double offset = FrontSenSorLCal - FrontSensoraRCal;
+      double offset = FrontSenSorLCal - FrontSensorRCal;
       while (abs(offset) >= 0.3)
       {
-        offset = FrontSenSorLCal - FrontSensoraRCal;
+        offset = FrontSenSorLCal - FrontSensorRCal;
         GetSensorData();
-        if (FrontSenSorLCal > FrontSensoraRCal)
+        if (FrontSenSorLCal > FrontSensorRCal)
         {
-          md.setSpeeds(-80, 80);
+          md.setSpeeds(-80, 80); //Turn Left
         }
-        if (FrontSensoraRCal > FrontSenSorLCal)
+        if (FrontSensorRCal > FrontSenSorLCal)
         {
-          md.setSpeeds(80, -80);
+          md.setSpeeds(80, -80); //Turn Right
         }
       }
 
-      while (FrontSenSorLCal > 12.8 && FrontSensoraRCal > 13.1)
+      while (FrontSenSorLCal > 12.8 && FrontSensorRCal > 13.1)
       {
         GetSensorData();
         md.setSpeeds(-70, -80); // difference of 11
       }
 
-      while (FrontSenSorLCal < 11.8 && FrontSensoraRCal < 12.1)
+      while (FrontSenSorLCal < 11.8 && FrontSensorRCal < 12.1)
       {
         GetSensorData();
         md.setSpeeds(70, 80);
       }
-      State = StopEP;
+      State = TurnRight1;
     }
     break;
 
-    case StopEP:
+    case TurnRight1:
     {
+      TargetRPM = 100;
+      MoveRobot_ClockWise();
+      if (Angle == true)
+      {
+        RightMotorCounter = 0;
+        LeftMotorCounter = 0;
+        RightMotorError = 0;
+        LeftMotorError = 0;
+        TurningCounter = 0;
+        DistanceCounter = 0;
+        Angle = false;
+        // Step2Check = false;
+        delay(350);
+        State = Halfcalibrate;
+        RobotStop_LeftMotor();
+      }
+    }
+    break;
+
+    case Halfcalibrate:
+    {
+      GetSensorData();
+      while ((LeftSensorRcal - LeftSensorLCal <= 0.78) || (LeftSensorRcal - LeftSensorLCal >= 0.94)) // if Robot is tilted Right more or tilted left more
+      {
+        GetSensorData();
+        if (LeftSensorRcal - LeftSensorLCal >= 0.94) // Robot is tilted more right
+        {
+          md.setSpeeds(65, -65); // Turn Left
+        }
+        if (LeftSensorRcal - LeftSensorLCal <= 0.78) // robot is tilted more left
+        {
+          md.setSpeeds(-65, 65); // Turn Right
+        }
+      }
+      RobotStop_BothMotors();
+      delay(350);
+      State = Stop_SendSensorData;
+    }
+    break;
+
+    case Stop_SendSensorData:
+    {
+      RobotStop_OneGrid();
+      SendSensorData();
+      RightMotorCounter = 0;
+      LeftMotorCounter = 0;
+      RightMotorError = 0;
+      DistanceCounter =0;
+      LeftMotorError = 0;
+      TurningCounter = 0;
+      TurningCounterL = 0;
+      State = Stop;
+    }
+    break;
+
+    case CheckFullCalibrationEP: //
+    {
+      GetSensorData();
+      if (LeftShortSensorL == 1 && LeftShortSensorR == 1)
+      {
+        if (LeftSensorLCal > 9.5 && LeftSensorRcal > 9.5)
+        {
+          State = TurnLeft1;
+        }
+        else if (LeftSensorLCal < 6.5 && LeftSensorRcal < 6.6)
+        {
+          State = TurnLeft1;
+        }
+        else
+        {
+          State = Halfcalibrate;
+        }
+      }
+      else
+      {
+        State = abcd;
+      }
+    }
+      break;
+
+    case CalibrateFrontLeftMiddle:
+    {
+      GetSensorData();
+      double offset = FrontSenSorLCal - FrontSenSorCCal;
+
+      while (FrontSenSorLCal > 13.1 && FrontSenSorCCal > 7.7)
+      {
+        GetSensorData();
+        md.setSpeeds(-70, -80); // difference of 11
+      }
+
+      while (FrontSenSorLCal < 12.1 && FrontSenSorCCal < 6.7)
+      {
+        GetSensorData();
+        md.setSpeeds(70, 80);
+      }
+
+      // Serial.println(abs(offset));
+      while (abs(offset) <= 4.85 || abs(offset) >= 4.9)
+      {
+        offset = FrontSenSorLCal - FrontSenSorCCal;
+        GetSensorData();
+        if ((FrontSenSorLCal - FrontSenSorCCal) >= 4.9)
+        {
+          md.setSpeeds(-80, 80);
+        }
+        else if ((FrontSenSorCCal - FrontSenSorLCal) <= 4.85)
+        {
+          md.setSpeeds(80, -80);
+        }
+      }
+
+      while (FrontSenSorLCal > 13.1 && FrontSenSorCCal > 7.7)
+      {
+        GetSensorData();
+        md.setSpeeds(-70, -80); // difference of 11
+      }
+
+      while (FrontSenSorLCal < 12.1 && FrontSenSorCCal < 6.7)
+      {
+        GetSensorData();
+        md.setSpeeds(70, 80);
+      }
+
+      while (abs(offset) <= 5.01 || abs(offset) >= 5.06)
+      {
+        offset = FrontSenSorLCal - FrontSenSorCCal;
+        GetSensorData();
+        if ((FrontSenSorLCal - FrontSenSorCCal) >= 5.06)
+        {
+          md.setSpeeds(-80, 80);
+        }
+        else if ((FrontSenSorCCal - FrontSenSorLCal) <= 5.01)
+        {
+          md.setSpeeds(80, -80);
+        }
+      }
+      State = Stop_SendSensorData;
+    }
+    break;
+
+    case CalibrateFrontLeftRight:
+    {
+      GetSensorData();
+      double offset = FrontSenSorLCal - FrontSensorRCal;
+
+      while (FrontSenSorLCal > 12.8 && FrontSensorRCal > 13.1)
+      {
+        GetSensorData();
+        md.setSpeeds(-70, -80); // difference of 11
+      }
+
+      while (FrontSenSorLCal < 11.8 && FrontSensorRCal < 12.1)
+      {
+        GetSensorData();
+        md.setSpeeds(70, 80);
+      }
+
+      // Serial.println(abs(offset));
+      while (abs(offset) <= 0.4)
+      {
+        offset = FrontSenSorLCal - FrontSensorRCal;
+        GetSensorData();
+        if ((FrontSenSorLCal - FrontSensorRCal) >= 0.7)
+        {
+          md.setSpeeds(-80, 80);
+        }
+        else if ((FrontSensorRCal - FrontSenSorLCal) >= 0.7)
+        {
+          md.setSpeeds(80, -80);
+        }
+      }
+
+      while (FrontSenSorLCal > 11.8 && FrontSensorRCal > 12.1)
+      {
+        GetSensorData();
+        md.setSpeeds(-70, -80); // difference of 11
+      }
+
+      while (FrontSenSorLCal < 10.8 && FrontSensorRCal < 11.1)
+      {
+        GetSensorData();
+        md.setSpeeds(70, 80);
+      }
+
+      while (abs(offset) >= 0.2)
+      {
+        offset = FrontSenSorLCal - FrontSensorRCal;
+        GetSensorData();
+        if ((FrontSenSorLCal - FrontSensorRCal) >= 0.2)
+        {
+          md.setSpeeds(-80, 80);
+        }
+        else if ((FrontSensorRCal - FrontSenSorLCal) >= 0.2)
+        {
+          md.setSpeeds(80, -80);
+        }
+      }
+      State = Stop_SendSensorData;
+    }
+    break;
+
+    case CalibrateFrontRightMiddle:
+    {
+      GetSensorData();
+      double offset = FrontSenSorCCal - FrontSensorRCal;
+
+      while (FrontSenSorCCal > 6.5 && FrontSensorRCal > 11.8)
+      {
+        GetSensorData();
+        md.setSpeeds(-70, -80); // difference of 11
+      }
+
+      while (FrontSenSorCCal < 7 && FrontSensorRCal < 12)
+      {
+        GetSensorData();
+        md.setSpeeds(70, 80);
+      }
+
+      // Serial.println(abs(offset));
+      while (abs(offset) <= 5.4 || abs(offset) >= 5.6)
+      {
+        offset = FrontSenSorCCal - FrontSensorRCal;
+        GetSensorData();
+        if ((FrontSensorRCal - FrontSenSorCCal) <= 5.4)
+        {
+          md.setSpeeds(-80, 80);
+        }
+        else if ((FrontSensorRCal - FrontSenSorCCal) >= 5.6)
+        {
+          md.setSpeeds(80, -80);
+        }
+      }
+
+      while (FrontSenSorCCal > 6.5 && FrontSensorRCal > 11.8)
+      {
+        GetSensorData();
+        md.setSpeeds(-70, -80);
+      }
+
+      while (FrontSenSorCCal < 7 && FrontSensorRCal < 12)
+      {
+        GetSensorData();
+        md.setSpeeds(70, 80);
+      }
+
+      while (abs(offset) <= 5.5 || abs(offset) >= 5.7)
+      {
+        offset = FrontSenSorCCal - FrontSensorRCal;
+        GetSensorData();
+        if ((FrontSensorRCal - FrontSenSorCCal) <= 5.5)
+        {
+          md.setSpeeds(-80, 80);
+        }
+        else if ((FrontSensorRCal - FrontSenSorCCal) >= 5.7)
+        {
+          md.setSpeeds(80, -80);
+        }
+      }
+      State = Stop_SendSensorData;
+    }
+    break;
+
+    case ForwardStop:
+    {
+      RobotStop_OneGrid();
+      SendSensorData();
       RightMotorCounter = 0;
       LeftMotorCounter = 0;
       RightMotorError = 0;
@@ -695,116 +1032,13 @@ void loop()
       DistanceCounter = 0;
       AngleL = false;
       Angle = false;
-      RobotStop();
-      State = TurnRightEP;
-      break;
-    }
-
-    case TurnRightEP:
-    {
-      TargetRPM = 100;
-      MoveRobotClockWise();
-      if (AngleL == true)
-      {
-        RightMotorCounter = 0;
-        LeftMotorCounter = 0;
-        // RightPreviousMotorError = RightMotorError;
-        // LeftPreviousMotorError = LeftMotorError;
-        // newRightMotorRPM = 0;
-        // newLeftMotorRPM = 0;
-        RightMotorError = 0;
-        LeftMotorError = 0;
-        TurningCounterL = 0;
-        AngleL = false;
-        Step2Check = false;
-        State = CalibrateSideEP;
-
-        RobotStop1();
-
-        delay(20);
-      }
-    }
-    break;
-
-    case CalibrateSideEP:
-    {
-      GetSensorData();
-      double offset = LeftSensorLCal - LeftSensorRcal;
-      while (abs(offset) >= 0.09)
-      {
-        GetSensorData();
-        offset = LeftSensorLCal - LeftSensorRcal;
-        if (LeftSensorLCal < LeftSensorRcal)
-        {
-          md.setSpeeds(65, -65);
-        }
-        if (LeftSensorRcal < LeftSensorLCal)
-        {
-          md.setSpeeds(-65, 65);
-        }
-      }
-      State = Halfcalibrate;
-    }
-    break;
-
-    case Halfcalibrate:
-    {
-      GetSensorData();
-      double offset = LeftSensorLCal - LeftSensorRcal;
-      while (abs(offset) >= 0.09)
-      {
-        GetSensorData();
-        offset = LeftSensorLCal - LeftSensorRcal;
-        if (LeftSensorLCal < LeftSensorRcal)
-        {
-          md.setSpeeds(65, -65);
-        }
-        else if (LeftSensorRcal < LeftSensorLCal)
-        {
-          md.setSpeeds(-65, 65);
-        }
-      }
-      State = StopSendSensorData;
-    }
-    break;
-
-    case StopSendSensorData:
-    {
-      RobotStop();
-      SendSensorData();
       State = Stop;
     }
     break;
-
-    case CheckFullCalibrationEP: //
-    {
-      GetSensorData();
-      Serial.println("HI:");
-      if (LeftShortSensorL == 1 && LeftShortSensorR == 1)
-      {
-        if (LeftSensorLCal > 9 && LeftSensorRcal > 9)
-        {
-          Serial.println("HI:");
-          State = TurnLeft1;
-        }
-        else
-        {
-          // Serial.println("HI:");
-          State = Halfcalibrate;
-        }
-      }
-      else
-      {
-        State = StopSendSensorData;
-      }
     }
-    break;
-  }
     delay(10);
   }
 }
-//close switch case //while main
-
 ////////////////////////////////////////////         COMPUTING PID VALUES      ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 void ComputePID()
 {
@@ -828,7 +1062,7 @@ void ComputeAllPreviousMotorError()
   AllRightMotorError += RightPreviousMotorError;
 }
 ///////////////////////////////////////////         PID CONTROL FOR ROBOT MOVEMENT    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-void MoveRobotForward()
+void MoveRobot_Forward()
 {
   //Compute MotorError
   ComputeMotorError();
@@ -847,7 +1081,7 @@ void MoveRobotForward()
   // Serial.print(" ");
   // Serial.println(mlRPM);
 }
-void MoveRobotClockWise()
+void MoveRobot_ClockWise()
 {
   //Compute MotorError
   ComputeMotorError();
@@ -867,7 +1101,7 @@ void MoveRobotClockWise()
   //  Serial.print(" ");
   //  Serial.println(mlRPM);
 }
-void MoveRobotAntiClockWise()
+void MoveRobot_AntiClockWise()
 {
   ComputeMotorError();
   ComputePID();
@@ -876,7 +1110,7 @@ void MoveRobotAntiClockWise()
   md.setM2Speed(-1 * newRightMotorRPM);
   md.setM1Speed(newLeftMotorRPM);
 }
-void MoveRobotBackward()
+void MoveRobot_Backward()
 {
   //Compute MotorError
   ComputeMotorError();
@@ -891,19 +1125,11 @@ void MoveRobotBackward()
   ComputeAllPreviousMotorError();
   md.setM2Speed(newRightMotorRPM);
   md.setM1Speed(newLeftMotorRPM);
-  //  Serial.println(mrRPM);
-  //  Serial.print(mrRPM);
-  //  Serial.print(" ");
-  //  Serial.println(mlRPM);
 }
-void RobotStop()
+void RobotStop_BothMotors()
 {
   RightMotorCounter = 0;
   LeftMotorCounter = 0;
-  // RightPreviousMotorError = RightMotorError;
-  // LeftPreviousMotorError = LeftMotorError;
-  // newRightMotorRPM = 0;
-  // newLeftMotorRPM = 0;
   RightMotorError = 0;
   LeftMotorError = 0;
   TurningCounterL = 0;
@@ -915,14 +1141,95 @@ void RobotStop()
   DistanceStop = false;
   md.setBrakes(370, 400);
 }
-//////////////////////////////////////////         Calibrate Sensor      ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-double CalibrateFrontLeftShortSensor()
+void RobotStop_LeftMotor() // for left turn
 {
-  double M = 1 / FrontLeftSensorGradient;
-  double q = FrontLeftSensorConstant / FrontLeftSensorGradient;
-  double Output = (M / (analogRead(A0) + q)) - 8;
+  RightMotorCounter = 0;
+  LeftMotorCounter = 0;
+  RightMotorError = 0;
+  LeftMotorError = 0;
+  TurningCounterL = 0;
+  TurningCounter = 0;
+  AngleL = false;
+  Angle = false;
+  DistanceCounter = 0;
+  DistanceStop = false;
+  md.setBrakes(400, 385);
+}
+void RobotStop_RightMotor() //for right turn
+{
+  RightMotorCounter = 0;
+  LeftMotorCounter = 0;
+  RightMotorError = 0;
+  LeftMotorError = 0;
+  TurningCounterL = 0;
+  TurningCounter = 0;
+  AngleL = false;
+  Angle = false;
+  DistanceCounter = 0;
+  DistanceStop = false;
+  md.setBrakes(400, 385);
+}
+void RobotStop_OneGrid()
+{
+  RightMotorCounter = 0;
+  LeftMotorCounter = 0;
+  RightMotorError = 0;
+  LeftMotorError = 0;
+  TurningCounterL = 0;
+  TurningCounter = 0;
+  AngleL = false;
+  Angle = false;
+  DistanceCounter = 0;
+  DistanceStop = false;
+  // md.setBrakes(385, 355);
+  // md.setBrakes(385,370);
+  md.setBrakes(395, 390);
+  // md.setBrakes(385,325);
+}
+//////////////////////////////////////////         Calibrate Sensor      ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+double Calibrate_FrontLeftShortSensor()
+{
+  int SensorCount = 0;
+  double Output = 0;
+  while (SensorCount != 32)
+  {
+    double M = 1 / FrontLeftSensorGradient;
+    double q = FrontLeftSensorConstant / FrontLeftSensorGradient;
+    double _output = (M / (analogRead(A0) + q)) - 8;
+    SensorCount++;
+    Output += _output;
+  }
+  Output = Output / 32;
 
   if (Output <= 15)
+  {
+    return 1;
+  }
+  // else if (Output <= 26)
+  // {
+  //   return 2;
+  // }
+  else
+  {
+    return 0;
+  }
+  // return Output;
+}
+double Calibrate_FrontRightShortSensor()
+{
+  int SensorCount = 0;
+  double Output = 0;
+  while (SensorCount != 32)
+  {
+    double M = 1 / FrontRightSensorGradient;
+    double q = FrontRightSensorConstant / FrontRightSensorGradient;
+    double _output = (M / (analogRead(A1) + q)) - 8;
+    SensorCount++;
+    Output += _output;
+  }
+  Output = Output / 32;
+
+  if (Output <= 14)
   {
     return 1;
   }
@@ -936,35 +1243,25 @@ double CalibrateFrontLeftShortSensor()
   }
   // return Output;
 }
-double CalibrateFrontRightShortSensor() //lousy until 24 cm toh
-{
-  double M = 1 / FrontRightSensorGradient;
-  double q = FrontRightSensorConstant / FrontRightSensorGradient;
-  double Output = (M / (analogRead(A1) + q)) - 8;
-  if (Output <= 15)
-  {
-    return 1;
-  }
-  else if (Output <= 24)
-  {
-    return 2;
-  }
-  else
-  {
-    return 0;
-  }
-  // return Output;
-}
 double CalibrateFrontCenterShortSensor()
 {
-  double M = 1 / FrontCenterSensorGradient;
-  double q = FrontCenterSensorConstant / FrontCenterSensorGradient;
-  double Output = (M / (analogRead(A4) + q)) - 8;
-  if (Output <= 10)
+  int SensorCount = 0;
+  double Output = 0;
+  while (SensorCount != 32)
+  {
+    double M = 1 / FrontCenterSensorGradient;
+    double q = FrontCenterSensorConstant / FrontCenterSensorGradient;
+    double _output = (M / (analogRead(A4) + q)) - 8;
+    SensorCount++;
+    Output += _output;
+  }
+  Output = Output / 32;
+
+  if (Output <= 9)
   {
     return 1;
   }
-  else if (Output <= 21)
+  else if (Output <= 20)
   {
     return 2;
   }
@@ -974,11 +1271,19 @@ double CalibrateFrontCenterShortSensor()
   }
   // return Output;
 }
-double CalibrateLeftShortSensorR()
+double Calibrate_LeftShortSensorR()
 {
-  double M = 1 / LeftShortSensorGradient;
-  double q = LeftShortSensorConstant / LeftShortSensorGradient;
-  double Output = (M / (analogRead(A3) + q)) - 8;
+  int SensorCount = 0;
+  double Output = 0;
+  while (SensorCount != 32)
+  {
+    double M = 1 / LeftShortSensorGradient;
+    double q = LeftShortSensorConstant / LeftShortSensorGradient;
+    double _output = (M / (analogRead(A3) + q)) - 8;
+    SensorCount++;
+    Output += _output;
+  }
+  Output = Output / 32;
 
   if (Output <= 15)
   {
@@ -991,13 +1296,21 @@ double CalibrateLeftShortSensorR()
   return 0; //no object after 3 grids
   // return Output;
 }
-double CalibrateLeftShortSensorL()
+double Calibrate_LeftShortSensorL()
 {
-  double M = 1 / LeftShortSensorRGradient;
-  double q = LeftShortSensorRConstant / LeftShortSensorRGradient;
-  double Output = (M / (analogRead(A5) + q)) - 8;
+  int SensorCount = 0;
+  double Output = 0;
+  while (SensorCount != 32)
+  {
+    double M = 1 / LeftShortSensorRGradient;
+    double q = LeftShortSensorRConstant / LeftShortSensorRGradient;
+    double _output = (M / (analogRead(A5) + q)) - 8;
+    SensorCount++;
+    Output += _output;
+  }
+  Output = Output / 32;
 
-  if (Output <= 14)
+  if (Output <= 15)
   {
     return 1;
   }
@@ -1011,20 +1324,29 @@ double CalibrateLeftShortSensorL()
   }
   // return Output;
 }
-double CalibrateRightLongSensor()
+double Calibrate_RightLongSensor()
 {
-  double M = 1 / RightLongSensorGradient;
-  double q = RightLongSensorConstant / RightLongSensorGradient;
-  double Output = (M / (analogRead(A2) + q)) - 8;
-  if (Output <= 24)
+  int SensorCount = 0;
+  double Output = 0;
+  while (SensorCount != 32)
+  {
+    double M = 1 / RightLongSensorGradient;
+    double q = RightLongSensorConstant / RightLongSensorGradient;
+    double _output = (M / (analogRead(A2) + q)) - 8;
+    SensorCount++;
+    Output += _output;
+  }
+  Output = Output / 32;
+
+  if (Output <= 23)
   {
     return 3;
   }
-  else if (Output <= 33)
+  else if (Output <= 32)
   {
     return 4;
   }
-  else if (Output <= 45)
+  else if (Output <= 43)
   {
     return 5;
   }
@@ -1037,6 +1359,7 @@ double CalibrateRightLongSensor()
 ///////////////////////////////////////////         RPM COUNTER      ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 void LeftMotorCount()
 {
+  // Serial.println(LeftMotorCounter);
   LeftMotorCounter++;
   if (LeftMotorCounter == 1)
   {
@@ -1073,7 +1396,7 @@ void RightMotorCount()
       Angle = true;
       TurningCounter = 0;
     }
-    if (TurningCounterL == 33)
+    if (TurningCounterL == 32)
     {
       AngleL = true;
       TurningCounterL = 0;
@@ -1095,59 +1418,35 @@ double calculateRPM(double encoderValue)
     return (60.00 / ((encoderValue * 562.25) / 1000000.00));
   }
 }
+///////////////////////////////////////////         Sending Sensor & getting Sensor Values      ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 void GetSensorData()
 {
-  ForwardL = CalibrateFrontLeftShortSensor(); //-5
-  ForwardR = CalibrateFrontRightShortSensor();
-  LeftShortSensorL = CalibrateLeftShortSensorL();
-  RightLongSensor = CalibrateRightLongSensor();
-  LeftShortSensorR = CalibrateLeftShortSensorR();
+  ForwardL = Calibrate_FrontLeftShortSensor(); //-5
+  ForwardR = Calibrate_FrontRightShortSensor();
+  LeftShortSensorL = Calibrate_LeftShortSensorL();
+  RightLongSensor = Calibrate_RightLongSensor();
+  LeftShortSensorR = Calibrate_LeftShortSensorR();
   ForwardC = CalibrateFrontCenterShortSensor();
 
-  LeftSensorLCal = SideSensorL();
-  LeftSensorRcal = SideSensorR();
-  FrontSenSorLCal = FrontSensorLCal();
-  FrontSensoraRCal = FrontSensorRCal();
-  // Serial.print(FrontSenSorLCal);
-  // Serial.print("  ");
-  // Serial.println(FrontSensoraRCal);
+  LeftSensorLCal = SideSensor_LCal();
+  LeftSensorRcal = SideSensor_RCal();
+  FrontSenSorLCal = FrontSensor_LCal();
+  FrontSensorRCal = FrontSensor_RCal();
+  FrontSenSorCCal = FrontSensor_CCal();
 }
 void SendSensorData()
 {
-  ForwardL = CalibrateFrontLeftShortSensor(); //-5
-  ForwardR = CalibrateFrontRightShortSensor();
-  LeftShortSensorL = CalibrateLeftShortSensorL();
-  RightLongSensor = CalibrateRightLongSensor();
-  LeftShortSensorR = CalibrateLeftShortSensorR();
+  ForwardL = Calibrate_FrontLeftShortSensor(); //-5
+  ForwardR = Calibrate_FrontRightShortSensor();
+  LeftShortSensorL = Calibrate_LeftShortSensorL();
+  RightLongSensor = Calibrate_RightLongSensor();
+  LeftShortSensorR = Calibrate_LeftShortSensorR();
   ForwardC = CalibrateFrontCenterShortSensor();
   // Serial.println(ForwardC);
   String s = "SDATA:" + String(ForwardC) + ":" + String(ForwardL) + ":" + String(ForwardR) + ":" + String(LeftShortSensorL) + ":" + String(LeftShortSensorR) + ":" + String(RightLongSensor);
   Serial.println(s);
 }
-void CalibrateSide()
-{
-
-  GetSensorData();
-  SendSensorData();
-  double LeftSensorLCal = SideSensorL();
-  double LeftSensorRcal = SideSensorR();
-
-  double offset = LeftSensorLCal - LeftSensorRcal;
-
-  if (offset < 0)
-  {
-    md.setSpeeds(80, -80);
-  }
-  if (offset > 0)
-  {
-    md.setSpeeds(-80, 80);
-  }
-  if (offset >= 0.5 || offset <= 1)
-  {
-    RobotStop();
-    State = Stop;
-  }
-}
+///////////////////////////////////////////         Raw Sensor      ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 double FrontSensorLeftCal()
 {
   double M = 1 / FrontLeftSensorGradient;
@@ -1172,21 +1471,21 @@ double FrontSensorCentreCal()
 
   return Output;
 }
-double SideSensorL()
+double SideSensor_LCal()
 {
   double M = 1 / LeftShortSensorRGradient;
   double q = LeftShortSensorRConstant / LeftShortSensorRGradient;
   double Output = (M / (analogRead(A5) + q)) - 8;
   return Output;
 }
-double SideSensorR()
+double SideSensor_RCal()
 {
   double M = 1 / LeftShortSensorGradient;
   double q = LeftShortSensorConstant / LeftShortSensorGradient;
   double Output = (M / (analogRead(A3) + q)) - 8;
   return Output;
 }
-double FrontSensorLCal()
+double FrontSensor_LCal()
 {
   double M = 1 / FrontLeftSensorGradient;
   double q = FrontLeftSensorConstant / FrontLeftSensorGradient;
@@ -1194,7 +1493,7 @@ double FrontSensorLCal()
 
   return Output;
 }
-double FrontSensorRCal()
+double FrontSensor_RCal()
 {
   double M = 1 / FrontRightSensorGradient;
   double q = FrontRightSensorConstant / FrontRightSensorGradient;
@@ -1202,50 +1501,11 @@ double FrontSensorRCal()
 
   return Output;
 }
-double FrontSensorCcal()
-
+double FrontSensor_CCal()
 {
   double M = 1 / FrontCenterSensorGradient;
   double q = FrontCenterSensorConstant / FrontCenterSensorGradient;
   double Output = (M / (analogRead(A4) + q)) - 8;
 
   return Output;
-}
-void RobotStop1() // for left turn
-{
-  RightMotorCounter = 0;
-  LeftMotorCounter = 0;
-  // RightPreviousMotorError = RightMotorError;
-  // LeftPreviousMotorError = LeftMotorError;
-  // newRightMotorRPM = 0;
-  // newLeftMotorRPM = 0;
-  RightMotorError = 0;
-  LeftMotorError = 0;
-  TurningCounterL = 0;
-  TurningCounter = 0;
-  AngleL = false;
-  Angle = false;
-  DistanceCounter = 0;
-  // DistanceTracker = 0;
-  DistanceStop = false;
-  md.setBrakes(400, 385);
-}
-void RobotStop2() //for right turn
-{
-  RightMotorCounter = 0;
-  LeftMotorCounter = 0;
-  // RightPreviousMotorError = RightMotorError;
-  // LeftPreviousMotorError = LeftMotorError;
-  // newRightMotorRPM = 0;
-  // newLeftMotorRPM = 0;
-  RightMotorError = 0;
-  LeftMotorError = 0;
-  TurningCounterL = 0;
-  TurningCounter = 0;
-  AngleL = false;
-  Angle = false;
-  DistanceCounter = 0;
-  // DistanceTracker = 0;
-  DistanceStop = false;
-  md.setBrakes(400, 385);
 }
