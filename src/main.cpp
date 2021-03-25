@@ -32,15 +32,14 @@ DualVNH5019MotorShield md;
 // double Kir = 0.55;
 // double Kdr = 0.35;
 
-double Kp = 5; //10 increase to reduce spike at the start
- double Ki = 0.35; //0.9 increase to pump up to able to reach desired speed
- double Kd = 0.3; //increase to improve stablity and prevent overshoot from the target
+double Kp = 5;    //10 increase to reduce spike at the start
+double Ki = 0.35; //0.9 increase to pump up to able to reach desired speed
+double Kd = 0.3;  //increase to improve stablity and prevent overshoot from the target
 
- //Right //blue line
- double Kpr = 5;
- double Kir = 0.6;
- double Kdr = 0.45;
-
+//Right //blue line
+double Kpr = 5;
+double Kir = 0.57;
+double Kdr = 0.45;
 
 //wheel at 5.2 cm away from left sensor
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////        PID DECLARATIONS      ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -144,7 +143,7 @@ enum StateModeFP
   CalibrateFrontLeftMiddle,
   CalibrateFrontLeftRight,
   CalibrateFrontRightMiddle,
-  
+
   empty_function
 };
 StateModeFP State = Stop;
@@ -173,7 +172,7 @@ void moveRobot_ClockWise();
 void moveRobot_AntiClockWise();
 void moveRobot_Backward();
 void robotStop_BothMotors();
-void robotStop_LeftMotor(); // for left turn
+void robotStop_LeftMotor();  // for left turn
 void robotStop_RightMotor(); // for right turn
 void robotStop_OneGrid();
 
@@ -191,7 +190,6 @@ double frontSensor_LCal();
 double frontSensor_RCal();
 double frontSensor_CCal();
 
-
 //RPM computation
 void leftMotorCount();
 void rightMotorCount();
@@ -200,6 +198,21 @@ double calculateRPM(double encoderValue);
 void get_sensorData();
 void SendSensorData();
 
+volatile double total_motor_encoder_count_L = 0;
+volatile double total_motor_encoder_count_R = 0;
+volatile double total_motor_encoder_count = 0;
+
+double average_encoder_count = 0;
+double distance_counter = 0;
+double current_distance = 0;
+double start_distance = 0;
+int target_distance_turnleft = 126;
+int target_distance_turnRight = 126;
+int target_distance_forwardOneGrid =88;
+
+//distance computation
+double min_total_encoder_count(double encoder_L, double encoder_R);
+double calculate_distance(double total_encoder);
 // int DistanceTracker;
 
 // boolean OneGridCheck;
@@ -213,8 +226,7 @@ boolean move_forward = false;
 // boolean Leftwallexist = false;
 // boolean rightwallexist = false;
 
-
-int dist[15] = {0, 23, 44, 66, 88, 125, 150, 175, 200, 225};
+int dist[15] = {0, 88, 185, 282, 385, 485, 587, 685, 785, 885};
 int grid = 0;
 int count = 0;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////         VOID SETUP     ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -229,13 +241,7 @@ void setup()
 ////////////////////////////////////////////////////////////////////////////// Main Function ////////////////////////////////////////////////////////////////////////////////
 void loop()
 {
-  
-
-  // delay(10);
-  // return;
-  //5.2 cm from left sensor , 13 cm from back
-  // get_sensorData();
-  // SendSensorData();
+  get_sensorData();
   if (Serial.available() > 0)
   {
     char Modes = Serial.read();
@@ -258,52 +264,62 @@ void loop()
   case calibrate_Full_cal:
   {
     TargetRPM = 80;
-    moveRobot_AntiClockWise();
-    if (angle_L == true)
-    {
-      right_motor_counter = 0;
-      left_motor_counter = 0;
-      left_motorerror = 0;
-      right_motorerror = 0;
-      turning_Counter_L = 0;
-      turning_Counter_R = 0;
-      right_previous_motorerror = right_motorerror;
-      left_previous_motorerror = left_motorerror;
-      new_right_motor_RPM = 0;
-      new_left_motorRPM = 0;
-      angle_L = false;
-      angle_R = false;
-      robotStop_LeftMotor();
-      delay(500);
+      // moveRobot_AntiClockWise();
+      //distance_counter = calcualate_distance(average_encoder_count);
+      //current_distance = distance_counter; // 0
+      // calculate start distance and store
+      // store current distance with start distance
+      average_encoder_count = min_total_encoder_count(total_motor_encoder_count_L, total_motor_encoder_count_R);
+      distance_counter = calculate_distance(average_encoder_count);
+      current_distance = distance_counter;
+
+      while (1)
+      {
+        average_encoder_count = min_total_encoder_count(total_motor_encoder_count_L, total_motor_encoder_count_R);
+        current_distance = calculate_distance(average_encoder_count);
+        
+        // current_distance = (distance_counter - current_distance) >= 0;
+        if (current_distance - distance_counter >= target_distance_turnleft)
+        {
+          robotStop_LeftMotor();
+          // Serial.println("Fin Left");
+          break;
+        }
+        moveRobot_AntiClockWise();
+      }
+      delay(100);
       state_Cal = turn_Left_cal1;
-    }
   }
-  break;
 
   case turn_Left_cal1:
   {
     TargetRPM = 80;
-    moveRobot_AntiClockWise();
-    if (angle_L == true)
-    {
-      right_motor_counter = 0;
-      left_motor_counter = 0;
-      left_motorerror = 0;
-      right_previous_motorerror = right_motorerror;
-      left_previous_motorerror = left_motorerror;
-      new_right_motor_RPM = 0;
-      new_left_motorRPM = 0;
-      right_motorerror = 0;
-      turning_Counter_L = 0;
-      turning_Counter_R = 0;
-      angle_L = false;
-      angle_R = false;
-      robotStop_LeftMotor();
-      delay(500);
+      // moveRobot_AntiClockWise();
+      //distance_counter = calcualate_distance(average_encoder_count);
+      //current_distance = distance_counter; // 0
+      // calculate start distance and store
+      // store current distance with start distance
+      average_encoder_count = min_total_encoder_count(total_motor_encoder_count_L, total_motor_encoder_count_R);
+      distance_counter = calculate_distance(average_encoder_count);
+      current_distance = distance_counter;
+
+      while (1)
+      {
+        average_encoder_count = min_total_encoder_count(total_motor_encoder_count_L, total_motor_encoder_count_R);
+        current_distance = calculate_distance(average_encoder_count);
+        
+        // current_distance = (distance_counter - current_distance) >= 0;
+        if (current_distance - distance_counter >= target_distance_turnleft)
+        {
+          robotStop_LeftMotor();
+          // Serial.println("Fin Left");
+          break;
+        }
+        moveRobot_AntiClockWise();
+      }
+      delay(100);
       state_Cal = calibrate_Frontwall_cal1;
-    }
   }
-  break;
 
   case calibrate_Frontwall_cal1:
   {
@@ -341,27 +357,33 @@ void loop()
 
   case turn_right_cal:
   {
-    TargetRPM = 100;
-    moveRobot_ClockWise();
-    if (angle_R == true)
-    {
-      right_motor_counter = 0;
-      left_motor_counter = 0;
-      left_motorerror = 0;
-      right_motorerror = 0;
-      turning_Counter_R = 0;
-      right_previous_motorerror = right_motorerror;
-      left_previous_motorerror = left_motorerror;
-      new_right_motor_RPM = 0;
-      new_left_motorRPM = 0;
-      angle_R = false;
-      // Step2Check = false;
-      robotStop_LeftMotor();
-      delay(500);
+      TargetRPM = 80;
+      // moveRobot_AntiClockWise();
+      //distance_counter = calcualate_distance(average_encoder_count);
+      //current_distance = distance_counter; // 0
+      // calculate start distance and store
+      // store current distance with start distance
+      average_encoder_count = min_total_encoder_count(total_motor_encoder_count_L, total_motor_encoder_count_R);
+      distance_counter = calculate_distance(average_encoder_count);
+      current_distance = distance_counter;
+
+      while (1)
+      {
+        average_encoder_count = min_total_encoder_count(total_motor_encoder_count_L, total_motor_encoder_count_R);
+        current_distance = calculate_distance(average_encoder_count);
+        
+        // current_distance = (distance_counter - current_distance) >= 0;
+        if (current_distance - distance_counter >= target_distance_turnRight)
+        {
+          robotStop_RightMotor();
+          // Serial.println("Fin Left");
+          break;
+        }
+        moveRobot_ClockWise();
+      }
+      delay(100);
       state_Cal = calibrate_Frontcal;
-    }
   }
-  break;
 
   case calibrate_Frontcal:
   {
@@ -399,28 +421,34 @@ void loop()
 
   case turn_right_Cal1:
   {
-    TargetRPM = 100;
-    moveRobot_ClockWise();
-    if (angle_R == true)
-    {
-      right_motor_counter = 0;
-      left_motor_counter = 0;
-      left_motorerror = 0;
-      right_motorerror = 0;
-      turning_Counter_R = 0;
-      grid_Counter =0;
-      right_previous_motorerror = right_motorerror;
-      left_previous_motorerror = left_motorerror;
-      new_right_motor_RPM = 0;
-      new_left_motorRPM = 0;
-      angle_R = false;
-      // Step2Check = false;
-      robotStop_LeftMotor();
-      delay(500);
+       TargetRPM = 80;
+      // moveRobot_AntiClockWise();
+      //distance_counter = calcualate_distance(average_encoder_count);
+      //current_distance = distance_counter; // 0
+      // calculate start distance and store
+      // store current distance with start distance
+      average_encoder_count = min_total_encoder_count(total_motor_encoder_count_L, total_motor_encoder_count_R);
+      distance_counter = calculate_distance(average_encoder_count);
+      current_distance = distance_counter;
+
+      while (1)
+      {
+        average_encoder_count = min_total_encoder_count(total_motor_encoder_count_L, total_motor_encoder_count_R);
+        current_distance = calculate_distance(average_encoder_count);
+        
+        // current_distance = (distance_counter - current_distance) >= 0;
+        if (current_distance - distance_counter >= target_distance_turnRight)
+        {
+          robotStop_RightMotor();
+          // Serial.println("Fin Left");
+          break;
+        }
+        moveRobot_ClockWise();
+      }
+      delay(100);
       state_Cal = calibrate_Sidecal;
     }
-  }
-  break;
+
 
   case calibrate_Sidecal:
   {
@@ -458,15 +486,16 @@ void loop()
     state_Cal = stop_Dontsendsensorcal;
     break;
   }
-}
+  }
   while (Main)
   {
     //  Serial.print(LeftSensorLCal);
     //   Serial.print("  ");
     //   Serial.println(LeftSensorRcal);
-   
+
     get_sensorData();
-    // SendSensorData();
+    // Serial.println(FrontSenSorCCal);
+    //  SendSensorData();
     if (Serial.available() > 0)
     {
       if (Serial.peek() >= 97 && Serial.peek() < 123)
@@ -543,12 +572,12 @@ void loop()
       robotStop_BothMotors();
     }
     break;
-////////////////////////////////////////////        Basic movements     ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+      ////////////////////////////////////////////        Basic movements     ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     case movement_Forward:
     {
       TargetRPM = 100;
-      
+
       moveRobot_Forward();
       if (forward_L == 1 || forward_R == 1 || forward_C == 1)
       {
@@ -561,113 +590,228 @@ void loop()
     case movement_One_grid:
     {
       // Serial.println("test1");
-      if (move_forward == false) // to reset all counter values in the interrupt
-      {
-        right_motor_counter = 0;
-        left_motor_counter = 0;
-        right_motorerror = 0;
-        left_motorerror = 0;
-        grid_Counter = 0;
-        distance_Stop = false;
-        move_forward = true;
-        right_previous_motorerror = right_motorerror;
-        left_previous_motorerror = left_motorerror;
-        new_right_motor_RPM = 0;
-        new_left_motorRPM = 0;
-        grid = dist[numberOfGrid]; // 0-9
-      }
-      get_sensorData();
-      if (grid == 23) // set speed for one grid movements
-      {
-        // md.setSpeeds(-362, -382);
-        md.setSpeeds(-362,-382);
-        // md.setSpeeds(-370,-400);
-      }
-      else if (grid != 23) // set speed for fp
-      {
-        TargetRPM = 100;
-      }
-      // moveRobot_Forward();
-      if (distance_Stop == true) // if grid number hit > distancestop = true , stop motor movement
-      {
-        distance_Stop = false;
-        // Serial.println("test");
-        right_motor_counter = 0;
-        left_motor_counter = 0;
-        right_motorerror = 0;
-        left_motorerror = 0;
-        right_previous_motorerror = right_motorerror;
-        left_previous_motorerror = left_motorerror;
-        new_right_motor_RPM = 0;
-        new_left_motorRPM = 0;
-        robotStop_BothMotors();
-        move_forward = false;
-        if (grid == 23)
-        {
-          delay(100);
-          State = CheckFullCalibrationEP; //exploration
+      // if (move_forward == false) // to reset all counter values in the interrupt
+      // {
+      //   right_motor_counter = 0;
+      //   left_motor_counter = 0;
+      //   right_motorerror = 0;
+      //   left_motorerror = 0;
+      //   grid_Counter = 0;
+      //   distance_Stop = false;
+      //   move_forward = true;
+      //   right_previous_motorerror = right_motorerror;
+      //   left_previous_motorerror = left_motorerror;
+      //   new_right_motor_RPM = 0;
+      //   new_left_motorRPM = 0;
+        
+      // }
 
-          // State = Stop; // fastest path
-        }
-        if (grid != 23) //if setting is not set to one grid only do one instruction
-        {
-          delay(100);
-          State = stop_SendSensorData;
-        }
+      get_sensorData();
+      if(numberOfGrid == 1)
+      {
+          md.setSpeeds(-362, -383);
       }
+      else if(numberOfGrid == 8 || numberOfGrid ==6)
+      {
+         md.setSpeeds(-367, -383);
+      }
+      else if(numberOfGrid ==9)
+      {
+        //TargetRPM = 100;
+         md.setSpeeds(-366, -383);
+      }
+      else
+      {
+      md.setSpeeds(-365, -383);
+      }
+      
+
+      // moveRobot_AntiClockWise();
+      //distance_counter = calcualate_distance(average_encoder_count);
+      //current_distance = distance_counter; // 0
+      // calculate start distance and store
+      // store current distance with start distance
+      average_encoder_count = min_total_encoder_count(total_motor_encoder_count_L, total_motor_encoder_count_R);
+      distance_counter = calculate_distance(average_encoder_count);
+      current_distance = distance_counter;
+
+      while (1)
+      {
+        average_encoder_count = min_total_encoder_count(total_motor_encoder_count_L, total_motor_encoder_count_R);
+        current_distance = calculate_distance(average_encoder_count);
+        
+        // current_distance = (distance_counter - current_distance) >= 0;
+        if (current_distance - distance_counter >= dist[numberOfGrid])
+        {
+          robotStop_OneGrid();
+          // Serial.println("Fin Left");
+          break;
+        }
+        
+      }
+      delay(80);
+      if(numberOfGrid == 1)
+      {
+        State = CheckFullCalibrationEP;
+      }
+      else
+      {
+        State = stop_SendSensorData;
+      }
+      
     }
+
+
+    //   if (grid == 18) // set speed for one grid movements
+    //   {
+    //     // md.setSpeeds(-362, -382);
+    //     md.setSpeeds(-362, -383);
+    //     // md.setSpeeds(-370,-400);
+    //   }
+    //   else if (grid != 18) // set speed for fp
+    //   {
+    //     TargetRPM = 100;
+    //     moveRobot_Forward();
+    //   }
+
+    //   if (distance_Stop == true) // if grid number hit > distancestop = true , stop motor movement
+    //   {
+    //     distance_Stop = false;
+    //     // Serial.println("test");
+    //     right_motor_counter = 0;
+    //     left_motor_counter = 0;
+    //     right_motorerror = 0;
+    //     left_motorerror = 0;
+    //     right_previous_motorerror = right_motorerror;
+    //     left_previous_motorerror = left_motorerror;
+    //     new_right_motor_RPM = 0;
+    //     new_left_motorRPM = 0;
+    //     robotStop_BothMotors();
+    //     move_forward = false;
+    //     if (grid == 18)
+    //     {
+    //       delay(50);
+    //       State = CheckFullCalibrationEP; //exploration
+
+    //       // State = Stop; // fastest path
+    //     }
+    //     if (grid != 18) //if setting is not set to one grid only do one instruction
+    //     {
+    //       delay(50);
+    //       State = stop_SendSensorData;
+    //     }
+    //   }
+    // }
     break;
 
     case movement_Turn_left:
     {
       TargetRPM = 80;
-      moveRobot_AntiClockWise();
-      if (angle_L == true)
+      // moveRobot_AntiClockWise();
+      //distance_counter = calcualate_distance(average_encoder_count);
+      //current_distance = distance_counter; // 0
+      // calculate start distance and store
+      // store current distance with start distance
+      average_encoder_count = min_total_encoder_count(total_motor_encoder_count_L, total_motor_encoder_count_R);
+      distance_counter = calculate_distance(average_encoder_count);
+      current_distance = distance_counter;
+
+      while (1)
       {
-        robotStop_LeftMotor();
-        right_motor_counter = 0;
-        left_motor_counter = 0;
-        right_motorerror = 0;
-        left_motorerror = 0;
-        turning_Counter_L = 0;
-        right_previous_motorerror = right_motorerror;
-        left_previous_motorerror = left_motorerror;
-        new_right_motor_RPM = 0;
-        new_left_motorRPM = 0;
-        all_right_motorerror =0;
-        all_left_motorerror =0;
-        angle_L = false;
-        robotStop_LeftMotor();
-        delay(100);
-        State = CheckFullCalibrationEP;
+        average_encoder_count = min_total_encoder_count(total_motor_encoder_count_L, total_motor_encoder_count_R);
+        current_distance = calculate_distance(average_encoder_count);
+        
+        // current_distance = (distance_counter - current_distance) >= 0;
+        if (current_distance - distance_counter >= target_distance_turnleft)
+        {
+          robotStop_LeftMotor();
+          // Serial.println("Fin Left");
+          break;
+        }
+        moveRobot_AntiClockWise();
       }
+      State = stop_SendSensorData;
+
+      // break;
+      // update current distance
+      // continue moving until current distance meet target distance
+      // if meet, break or stop and change state
+      break;
     }
-    break;
+
+      //   moveRobot_AntiClockWise();
+      //   if (angle_L == true)
+      //   {
+      //     robotStop_LeftMotor();
+      //     right_motor_counter = 0;
+      //     left_motor_counter = 0;
+      //     right_motorerror = 0;
+      //     left_motorerror = 0;
+      //     turning_Counter_L = 0;
+      //     right_previous_motorerror = right_motorerror;
+      //     left_previous_motorerror = left_motorerror;
+      //     new_right_motor_RPM = 0;
+      //     new_left_motorRPM = 0;
+      //     all_right_motorerror =0;
+      //     all_left_motorerror =0;
+      //     angle_L = false;
+      //     robotStop_LeftMotor();
+      //     delay(50);
+      //     State = CheckFullCalibrationEP;
+      //   }
+      // }
+      // break;
 
     case movement_Turn_right:
     {
-      TargetRPM = 80;
-      moveRobot_ClockWise();
-      // md.setSpeeds(-400,400);
-      if (angle_R == true)
+        TargetRPM = 80;
+      // moveRobot_AntiClockWise();
+      //distance_counter = calcualate_distance(average_encoder_count);
+      //current_distance = distance_counter; // 0
+      // calculate start distance and store
+      // store current distance with start distance
+      average_encoder_count = min_total_encoder_count(total_motor_encoder_count_L, total_motor_encoder_count_R);
+      distance_counter = calculate_distance(average_encoder_count);
+      current_distance = distance_counter;
+
+      while (1)
       {
-        robotStop_RightMotor();
-        right_motor_counter = 0;
-        left_motor_counter = 0;
-        right_motorerror = 0;
-        left_motorerror = 0;
-        turning_Counter_R = 0;
-        right_previous_motorerror = right_motorerror;
-        left_previous_motorerror = left_motorerror;
-        new_right_motor_RPM = 0;
-        new_left_motorRPM = 0;
-        all_right_motorerror = 0;
-        all_left_motorerror = 0;
-        robotStop_RightMotor();
-        angle_R = false;
-        delay(100);
-        State = CheckFullCalibrationEP;
+        average_encoder_count = min_total_encoder_count(total_motor_encoder_count_L, total_motor_encoder_count_R);
+        current_distance = calculate_distance(average_encoder_count);
+        
+        // current_distance = (distance_counter - current_distance) >= 0;
+        if (current_distance - distance_counter >= target_distance_turnRight)
+        {
+          robotStop_RightMotor();
+          // Serial.println("Fin Left");
+          break;
+        }
+        moveRobot_ClockWise();
       }
+      State = stop_SendSensorData;
+
+      // TargetRPM = 80;
+      // moveRobot_ClockWise();
+      // // md.setSpeeds(-400,400);
+      // if (angle_R == true)
+      // {
+      //   robotStop_RightMotor();
+      //   right_motor_counter = 0;
+      //   left_motor_counter = 0;
+      //   right_motorerror = 0;
+      //   left_motorerror = 0;
+      //   turning_Counter_R = 0;
+      //   right_previous_motorerror = right_motorerror;
+      //   left_previous_motorerror = left_motorerror;
+      //   new_right_motor_RPM = 0;
+      //   new_left_motorRPM = 0;
+      //   all_right_motorerror = 0;
+      //   all_left_motorerror = 0;
+      //   robotStop_RightMotor();
+      //   angle_R = false;
+      //   delay(50);
+      //   State = CheckFullCalibrationEP;
+      // }
     }
     break;
 
@@ -719,7 +863,7 @@ void loop()
       }
 
       // Serial.println(abs(offset));
-      while (  (FrontSensorRCal-FrontSenSorLCal >= 0.70) ||   ((FrontSensorRCal - FrontSenSorLCal) <= 0.55))
+      while ((FrontSensorRCal - FrontSenSorLCal >= 0.70) || ((FrontSensorRCal - FrontSenSorLCal) <= 0.55))
       {
         offset = FrontSenSorLCal - FrontSensorRCal;
         get_sensorData();
@@ -765,35 +909,43 @@ void loop()
 
     case turnLeft_1:
     {
-      TargetRPM = 80;
-      moveRobot_AntiClockWise();
-      if (angle_L == true)
+      // TargetRPM = 80;
+      // moveRobot_AntiClockWise();
+      // if (angle_L == true)
+      // {
+       TargetRPM = 80;
+      // moveRobot_AntiClockWise();
+      //distance_counter = calcualate_distance(average_encoder_count);
+      //current_distance = distance_counter; // 0
+      // calculate start distance and store
+      // store current distance with start distance
+      average_encoder_count = min_total_encoder_count(total_motor_encoder_count_L, total_motor_encoder_count_R);
+      distance_counter = calculate_distance(average_encoder_count);
+      current_distance = distance_counter;
+
+      while (1)
       {
-        robotStop_RightMotor();
-        right_motor_counter = 0;
-        left_motor_counter = 0;
-        right_motorerror = 0;
-        left_motorerror = 0;
-        turning_Counter_R = 0;
-        right_previous_motorerror = right_motorerror;
-        left_previous_motorerror = left_motorerror;
-        new_right_motor_RPM = 0;
-        new_left_motorRPM = 0;
-        all_right_motorerror =0;
-        all_left_motorerror =0;
-        angle_L = false;
-        robotStop_RightMotor();
+        average_encoder_count = min_total_encoder_count(total_motor_encoder_count_L, total_motor_encoder_count_R);
+        current_distance = calculate_distance(average_encoder_count);
         
-        delay(100);
+        // current_distance = (distance_counter - current_distance) >= 0;
+        if (current_distance - distance_counter >= target_distance_turnleft)
+        {
+          robotStop_LeftMotor();
+          // Serial.println("Fin Left");
+          break;
+        }
+        moveRobot_AntiClockWise();
+      }
+
+        delay(30);
         // State = CheckFullCalibrationEP;
         State = calibrate_FrontWall;
-      }
     }
-    break;
 
     case calibrate_FrontWall:
     {
-     get_sensorData();
+      get_sensorData();
       double offset = FrontSenSorLCal - FrontSensorRCal;
 
       while (FrontSenSorLCal > 10 && FrontSensorRCal > 10)
@@ -809,13 +961,14 @@ void loop()
       }
 
       // Serial.println(abs(offset));
-      while (  (FrontSensorRCal-FrontSenSorLCal >= 0.60) ||   ((FrontSensorRCal - FrontSenSorLCal) <= 0.30))
+      while ((FrontSensorRCal - FrontSenSorLCal >= 0.60) || ((FrontSensorRCal - FrontSenSorLCal) <= 0.30))
       {
         offset = FrontSenSorLCal - FrontSensorRCal;
         get_sensorData();
         if ((FrontSensorRCal - FrontSenSorLCal) >= 0.60)
         {
-          md.setSpeeds(80, -80);; // Turn Left
+          md.setSpeeds(80, -80);
+          ; // Turn Left
         }
         else if ((FrontSensorRCal - FrontSenSorLCal) <= 0.30)
         {
@@ -835,7 +988,7 @@ void loop()
         md.setSpeeds(70, 80);
       }
 
-      while ( (FrontSensorRCal-FrontSenSorLCal >= 0.60) ||   ((FrontSensorRCal - FrontSenSorLCal) <= 0.30) )
+      while ((FrontSensorRCal - FrontSenSorLCal >= 0.60) || ((FrontSensorRCal - FrontSenSorLCal) <= 0.30))
       {
         offset = FrontSenSorLCal - FrontSensorRCal;
         get_sensorData();
@@ -856,49 +1009,53 @@ void loop()
     case turnRight_1:
     {
       // Serial.println(turning_Counter_R);
-      TargetRPM = 80;
-      moveRobot_ClockWise();
-      if (angle_R == true)
+        TargetRPM = 80;
+      // moveRobot_AntiClockWise();
+      //distance_counter = calcualate_distance(average_encoder_count);
+      //current_distance = distance_counter; // 0
+      // calculate start distance and store
+      // store current distance with start distance
+      average_encoder_count = min_total_encoder_count(total_motor_encoder_count_L, total_motor_encoder_count_R);
+      distance_counter = calculate_distance(average_encoder_count);
+      current_distance = distance_counter;
+
+      while (1)
       {
-        robotStop_RightMotor();
-        right_motor_counter = 0;
-        left_motor_counter = 0;
-        right_motorerror = 0;
-        left_motorerror = 0;
-        turning_Counter_R = 0;
-        right_previous_motorerror = right_motorerror;
-        left_previous_motorerror = left_motorerror;
-        new_right_motor_RPM = 0;
-        new_left_motorRPM = 0;
-        all_right_motorerror =0;
-        all_left_motorerror =0;
-        robotStop_RightMotor();
-        angle_R = false;
-        delay(100);
-        State = half_calibrate;
-        // State = half_calibrate;
+        average_encoder_count = min_total_encoder_count(total_motor_encoder_count_L, total_motor_encoder_count_R);
+        current_distance = calculate_distance(average_encoder_count);
+        
+        // current_distance = (distance_counter - current_distance) >= 0;
+        if (current_distance - distance_counter >= target_distance_turnRight)
+        {
+          robotStop_RightMotor();
+          // Serial.println("Fin Left");
+          break;
+        }
+        moveRobot_ClockWise();
       }
+      delay(30);
+      State = half_calibrate;
+        // State = half_calibrate;
     }
-    break;
 
     case half_calibrate:
     {
-     
+
       get_sensorData();
       while ((LeftSensorRcal - LeftSensorLCal <= 0.5) || (LeftSensorRcal - LeftSensorLCal >= 1.0))
       {
-      get_sensorData();
-      if (LeftSensorRcal - LeftSensorLCal >= 1.0)
-      {
-        md.setSpeeds(65, -65); // turn left
+        get_sensorData();
+        if (LeftSensorRcal - LeftSensorLCal >= 1.0)
+        {
+          md.setSpeeds(65, -65); // turn left
+        }
+        if (LeftSensorRcal - LeftSensorLCal <= 0.5)
+        {
+          md.setSpeeds(-65, 65);
+        }
       }
-      if (LeftSensorRcal - LeftSensorLCal <= 0.5)
-      {
-        md.setSpeeds(-65, 65); 
-      }
-    }
       robotStop_BothMotors();
-      delay(50);
+      delay(30);
       State = stop_SendSensorData;
     }
     break;
@@ -910,7 +1067,7 @@ void loop()
       right_motor_counter = 0;
       left_motor_counter = 0;
       right_motorerror = 0;
-      grid_Counter =0;
+      grid_Counter = 0;
       left_motorerror = 0;
       turning_Counter_R = 0;
       turning_Counter_L = 0;
@@ -927,7 +1084,7 @@ void loop()
         {
           State = turnLeft_1;
         }
-        else if (LeftSensorLCal < 14 && LeftSensorRcal < 14)
+        else if (LeftSensorLCal < 13 && LeftSensorRcal < 13)
         {
           State = turnLeft_1;
         }
@@ -941,7 +1098,7 @@ void loop()
         State = empty_function;
       }
     }
-      break;
+    break;
 
     case CalibrateFrontLeftMiddle:
     {
@@ -1184,6 +1341,7 @@ void moveRobot_Forward()
   compute_AllPreviousMotorError();
   md.setM2Speed(-new_right_motor_RPM);
   md.setM1Speed(-new_left_motorRPM);
+  delay(10);
   // Serial.print(mrRPM);
   // Serial.print(" ");
   // Serial.println(mlRPM);
@@ -1204,6 +1362,7 @@ void moveRobot_ClockWise()
 
   md.setM2Speed(new_right_motor_RPM);
   md.setM1Speed(-new_left_motorRPM);
+  delay(10);
   //  Serial.print(mrRPM);
   //  Serial.print(" ");
   //  Serial.println(mlRPM);
@@ -1216,6 +1375,7 @@ void moveRobot_AntiClockWise()
   compute_AllPreviousMotorError();
   md.setM2Speed(-1 * new_right_motor_RPM);
   md.setM1Speed(new_left_motorRPM);
+  delay(10);
 }
 void moveRobot_Backward()
 {
@@ -1246,7 +1406,7 @@ void robotStop_BothMotors()
   grid_Counter = 0;
   // DistanceTracker = 0;
   distance_Stop = false;
-  md.setBrakes(370, 400);
+  md.setBrakes(387, 395);
 }
 void robotStop_LeftMotor() // for left turn
 {
@@ -1260,7 +1420,7 @@ void robotStop_LeftMotor() // for left turn
   angle_R = false;
   grid_Counter = 0;
   distance_Stop = false;
-  md.setBrakes(385, 400);
+  md.setBrakes(387, 400);
 }
 void robotStop_RightMotor() //for right turn
 {
@@ -1368,7 +1528,7 @@ double calibrateFrontCenterShortSensor()
   {
     return 1;
   }
-  else if (Output <= 18)
+  else if (Output <= 20)
   {
     return 2;
   }
@@ -1445,7 +1605,7 @@ double calibrate_RightLongSensor()
   }
   Output = Output / 32;
 
-  if (Output <= 27)
+  if (Output <= 28)
   {
     return 3;
   }
@@ -1453,7 +1613,7 @@ double calibrate_RightLongSensor()
   {
     return 4;
   }
-  else if (Output <= 50)
+  else if (Output <= 45)
   {
     return 5;
   }
@@ -1466,6 +1626,7 @@ double calibrate_RightLongSensor()
 ///////////////////////////////////////////         RPM COUNTER      ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 void leftMotorCount()
 {
+  total_motor_encoder_count_L++;
   left_motor_counter++;
   if (left_motor_counter == 1)
   {
@@ -1473,7 +1634,7 @@ void leftMotorCount()
   }
   else if (left_motor_counter == 11)
   {
-     grid_Counter++;
+    grid_Counter++;
     if (grid_Counter == grid)
     {
       distance_Stop = true;
@@ -1489,6 +1650,7 @@ void leftMotorCount()
 void rightMotorCount()
 {
   // Serial.println(right_motor_counter);
+  total_motor_encoder_count_R++;
   right_motor_counter++;
   if (right_motor_counter == 1)
   {
@@ -1498,14 +1660,14 @@ void rightMotorCount()
   {
     turning_Counter_R++;
     turning_Counter_L++;
-   
+
     // Serial.println(turning_Counter_R);
-    if (turning_Counter_R == 36) // [36[+1},72[+2],108[+4],144[+4],180[+6],216[+6],252[+6],288[+7],324[+9],360[+10],396[+10],432[+11]// [90,180,270,360,450,540,600,720,810,900,990,1080]
+    if (turning_Counter_R == 32) // [36[+1},72[+2],108[+4],144[+4],180[+6],216[+6],252[+6],288[+7],324[+9],360[+10],396[+10],432[+11]// [90,180,270,360,450,540,600,720,810,900,990,1080]
     {
       angle_R = true;
       turning_Counter_R = 0;
     }
-    if (turning_Counter_L == 36)
+    if (turning_Counter_L == 32)
     {
       angle_L = true;
       turning_Counter_L = 0;
@@ -1543,7 +1705,7 @@ void get_sensorData()
   FrontSensorRCal = frontSensor_RCal();
   FrontSenSorCCal = frontSensor_CCal();
 
-  // Serial.println(FrontSenSorCCal);
+  // Serial.println(RightLongSensor);
   // Serial.print(LeftSensorLCal);
   // Serial.print("  ");
   // Serial.println(LeftSensorRcal);
@@ -1622,4 +1784,14 @@ double frontSensor_CCal()
   double Output = (M / (analogRead(A4) + q)) - 8;
 
   return Output;
+}
+
+double min_total_encoder_count(double encoder_L, double encoder_R)
+{
+  return ((encoder_L + encoder_R) / 2);
+}
+
+double calculate_distance(double total_encoder)
+{
+  return (total_encoder / 562.25 * PI * 60);
 }
